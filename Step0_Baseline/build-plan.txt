@@ -1,0 +1,140 @@
+# Orbital8 Goji - Deconstruction Build Plan
+
+## 1. Objective
+
+This plan outlines the strategy to deconstruct the monolithic `orbital8-goji` baseline file into a modular, maintainable, and scalable structure within the `Step1_Source` directory. The goal is to separate concerns (HTML, CSS, JS) and further break down the JavaScript into logical modules representing different features and services of the application.
+
+## 2. Proposed Directory Structure in `Step1_Source`
+
+The application will be broken down into the following directory structure:
+
+```
+Step1_Source/
+├── css/
+│   ├── main.css              # Core styles, variables, layout
+│   └── components.css        # Styles for modals, cards, buttons, etc.
+├── html/
+│   ├── screens/
+│   │   ├── 00_provider.html
+│   │   ├── 01_gdrive_auth.html
+│   │   ├── 02_onedrive_auth.html
+│   │   ├── 03_gdrive_folders.html
+│   │   ├── 04_onedrive_folders.html
+│   │   ├── 05_loading.html
+│   │   └── 10_app_container.html
+│   └── modals/
+│       ├── grid.html
+│       ├── action.html
+│       └── details.html
+├── js/
+│   ├── app/
+│   │   ├── state.js          # Central application state
+│   │   ├── app.js            # Main application logic (App object)
+│   │   ├── core.js           # Core image/stack management (Core object)
+│   │   └── events.js         # Event listener setup (Events object)
+│   ├── components/
+│   │   ├── grid.js           # Grid modal logic
+│   │   ├── details.js        # Details modal logic
+│   │   ├── modal.js          # Generic action modal logic
+│   │   ├── gdrive-folders.js # Google Drive specific folder logic
+│   │   ├── onedrive-folders.js # OneDrive specific folder logic
+│   │   ├── gestures.js       # Gesture handling for image swiping/zooming
+│   │   └── ui.js             # General UI helpers (UI object)
+│   ├── providers/
+│   │   ├── base-provider.js
+│   │   ├── googledrive-provider.js
+│   │   └── onedrive-provider.js
+│   ├── services/
+│   │   ├── file-cache.js     # IndexedDB caching
+│   │   ├── haptic.js         # Haptic feedback manager
+│   │   ├── metadata.js       # PNG metadata extractor
+│   │   ├── sync.js           # OneDrive background sync manager
+│   │   ├── visual-cues.js    # Visual intensity manager
+│   │   └── export.js         # CSV export system
+│   ├── utils/
+│   │   └── utils.js          # Utility functions (Utils object)
+│   ├── lib/
+│   │   └── msal-browser.min.js # External MSAL library
+│   └── main.js               # Application entry point (initApp)
+└── test-build.html           # File to assemble and test the deconstructed modules
+```
+
+## 3. Deconstruction Plan
+
+### 3.1. CSS (`<style>` block)
+
+1.  **`css/main.css`**: Extract `:root` variables, `body, html`, general layout classes like `.screen`, `.app-container`, `.image-viewport`, responsive media queries, and utility classes like `.hidden`.
+2.  **`css/components.css`**: Extract styles for specific components like `.card`, `.button`, `.modal`, `.pill-counter`, `.grid-item`, `.folder-item`, `.toast`, etc.
+
+### 3.2. HTML (`<body>` content)
+
+-   Each top-level `<div>` with a unique ID will be extracted into its own HTML file in `html/screens/` or `html/modals/` as specified in the directory structure.
+    -   Example: The `div#provider-screen` will become `html/screens/00_provider.html`.
+    -   Example: The `div#grid-modal` will become `html/modals/grid.html`.
+
+### 3.3. JavaScript (`<script>` block)
+
+1.  **External Libraries**: The `msal-browser.min.js` will be downloaded and placed in `js/lib/`. The original `<script>` tag pointing to the CDN will be updated to point to this local file.
+2.  **`js/app/state.js`**: Extract the `STACKS`, `STACK_NAMES`, and the main `state` object definition.
+3.  **`js/utils/utils.js`**: Extract the `Utils` object.
+4.  **Services (`js/services/`)**: Each class will be extracted into its own file.
+    -   `VisualCueManager` -> `visual-cues.js`
+    -   `HapticFeedbackManager` -> `haptic.js`
+    -   `FileCache` -> `file-cache.js`
+    -   `MetadataExtractor` -> `metadata.js`
+    -   `ExportSystem` -> `export.js`
+    -   `MetadataSyncManager` -> `sync.js`
+5.  **Providers (`js/providers/`)**: The provider classes will be extracted.
+    -   `BaseProvider` -> `base-provider.js`
+    -   `GoogleDriveProvider` -> `googledrive-provider.js`
+    -   `OneDriveProvider` -> `onedrive-provider.js`
+6.  **Core Logic & Components (`js/app/` & `js/components/`)**: Each large manager object will be extracted into its own file.
+    -   The `Folders` object will be split:
+        -   Logic for Google Drive will go into `js/components/gdrive-folders.js`.
+        -   Logic for OneDrive will go into `js/components/onedrive-folders.js`.
+    -   `App` object -> `js/app/app.js`
+    -   `Core` object -> `js/app/core.js`
+    -   `Grid` object -> `js/components/grid.js`
+    -   `Details` object -> `js/components/details.js`
+    -   `Modal` object -> `js/components/modal.js`
+    -   `Gestures` object -> `js/components/gestures.js`
+    -   `UI` object -> `js/components/ui.js`
+    -   `Events` object -> `js/app/events.js`
+7.  **`js/main.js`**:
+    -   The OAuth callback handling logic.
+    -   The `initApp` function.
+    -   The `document.addEventListener('DOMContentLoaded', initApp);` call.
+
+## 4. Build Instructions for `test-build.html`
+
+The `test-build.html` will be the primary testing ground. It will reconstruct the application by:
+1.  Including the base HTML structure (`<!DOCTYPE html>`, `<html>`, `<head>`, `<body>`).
+2.  Linking the two new CSS files in the `<head>`.
+3.  Including the MSAL library script tag in the `<head>`.
+4.  Fetching and injecting the content of all HTML partials from `html/screens/` and `html/modals/` into the `<body>` in their original order.
+5.  Including `<script>` tags for all JavaScript modules in the correct dependency order at the end of the `<body>`. The order is critical:
+    1.  `js/lib/msal-browser.min.js`
+    2.  `js/app/state.js`
+    3.  `js/utils/utils.js`
+    4.  `js/services/visual-cues.js`
+    5.  `js/services/haptic.js`
+    6.  `js/services/file-cache.js`
+    7.  `js/services/metadata.js`
+    8.  `js/services/export.js`
+    9.  `js/providers/base-provider.js`
+    10. `js/providers/googledrive-provider.js`
+    11. `js/providers/onedrive-provider.js`
+    12. `js/services/sync.js`
+    13. `js/app/app.js`
+    14. `js/app/core.js`
+    15. `js/components/grid.js`
+    16. `js/components/details.js`
+    17. `js/components/modal.js`
+    18. `js/components/gdrive-folders.js`
+    19. `js/components/onedrive-folders.js`
+    20. `js/components/gestures.js`
+    21. `js/components/ui.js`
+    22. `js/app/events.js`
+    23. `js/main.js`
+
+This structured approach will ensure a clean, maintainable codebase in `Step1_Source` while verifying functionality with `test-build.html` before proceeding to further refactoring in `Step2_Target`.

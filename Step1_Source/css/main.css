@@ -1,0 +1,91 @@
+:root {
+    --accent: #f59e0b;
+    --glass: rgba(255, 255, 255, 0.1);
+    --border: rgba(255, 255, 255, 0.3);
+    --dark: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    --glow: 0.6;
+    --ripple: 1500ms;
+}
+
+* { box-sizing: border-box; }
+
+body, html {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden; background: #000; overscroll-behavior: none; touch-action: none;
+}
+
+.screen {
+    position: fixed; inset: 0; background: var(--dark);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+}
+.screen.hidden { display: none; }
+
+.app-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: var(--dark);
+    overflow: hidden;
+}
+
+.image-viewport {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.empty-state {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;
+    color: rgba(255, 255, 255, 0.7); font-size: 18px; font-weight: 300; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); z-index: 5;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+.modal.hidden { display: none !important; }
+
+.app-footer {
+    position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.6); text-align: center; padding: 4px 8px;
+    font-size: 10px; z-index: 5; backdrop-filter: blur(10px);
+}
+
+.hidden { display: none !important; }
+
+.high-intensity-mode .pill-counter.glow-effect {
+    box-shadow: 0 0 35px rgba(245, 158, 11, 1), 0 0 70px rgba(245, 158, 11, 0.8), 0 0 100px rgba(245, 158, 11, 0.6);
+}
+
+@media screen and (min-width: 768px) {
+    .pill-counter { font-size: 16px; padding: 8px 16px; min-width: 40px; }
+    .nav-button { font-size: 14px; padding: 10px 16px; }
+    .focus-mode-ui, #normal-image-count { font-size: 14px; padding: 10px 16px; }
+}
+
+@media screen and (max-width: 767px) {
+    .nav-button { font-size: 16px; padding: 12px 20px; border-radius: 25px; min-width: 80px; }
+    .pill-counter.bottom { bottom: 80px; }
+    .filename-overlay { font-size: 11px; padding: 5px 12px; bottom: 35px; }
+    .details-modal-content { max-width: 100vw; max-height: 100vh; height: 100vh; margin: 0; border-radius: 0; }
+    .metadata-table .key-cell { width: 30%; min-width: 80px; font-size: 12px; }
+    .metadata-table .value-cell { font-size: 12px; }
+    .copy-button { font-size: 10px; padding: 3px 6px; }
+    .app-container { height: 100vh; height: 100dvh; }
+    .image-viewport { height: 100vh; height: 100dvh; }
+}
+
+@supports (height: 100dvh) {
+    .app-container { height: 100dvh; }
+    .image-viewport { height: 100dvh; }
+}

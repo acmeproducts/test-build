@@ -1,0 +1,53 @@
+<!-- Enhanced Grid Modal -->
+<div id="grid-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-header-main">
+                <div class="modal-header-left">
+                    <h2 id="grid-title" class="modal-title">Grid View</h2>
+                    <button id="select-all-btn" class="select-all-btn">0</button>
+                </div>
+                <button id="close-grid" class="close-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="grid-row-2">
+                <span class="selection-count">
+                    <span id="selection-text">0 selected</span>
+                    <button id="deselect-all-btn" class="deselect-all-btn">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </span>
+                <div class="zoom-control">
+                    <input type="range" id="grid-size" min="1" max="10" value="4">
+                    <span id="grid-size-value">4</span>
+                </div>
+            </div>
+            
+            <div class="grid-row-3">
+                <input type="text" id="omni-search" class="input" placeholder="Search tags, notes, and metadata..." style="margin-bottom: 0;">
+                <button id="clear-search-btn">
+                     <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="grid-row-4">
+                <div class="bulk-actions">
+                    <button id="tag-selected" class="btn btn-primary">Tag</button>
+                    <button id="move-selected" class="btn btn-primary">Move</button>
+                    <button id="delete-selected" class="btn btn-danger">Delete</button>
+                    <button id="export-selected" class="btn btn-primary">Export</button>
+                    <button id="folder-selected" class="btn btn-primary">Folder</button>
+                </div>
+            </div>
+        </div>
+        <div id="grid-content" class="grid-content">
+            <div id="grid-container" class="grid-container"></div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,100 @@
+<!-- Details Modal -->
+<div id="details-modal" class="modal hidden">
+    <div class="modal-content details-modal-content">
+        <div class="details-header">
+            <h3 class="details-title">Image Details</h3>
+            <button id="details-close" class="close-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="tab-nav">
+            <button class="tab-button active" data-tab="info">Info</button>
+            <button class="tab-button" data-tab="tags">Tags</button>
+            <button class="tab-button" data-tab="notes">Notes</button>
+            <button class="tab-button" data-tab="metadata">Metadata</button>
+        </div>
+        
+        <div class="details-content">
+            <div id="tab-info" class="tab-content active">
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 12px; gap: 12px;">
+                        <span style="font-size: 14px; color: #6b7280; min-width: 80px; font-weight: 500;">Filename:</span>
+                        <a id="detail-filename-link" style="font-size: 14px; color: #3b82f6; flex: 1; word-break: break-word; text-decoration: none;" href="#" target="_blank">
+                            <span id="detail-filename"></span>
+                        </a>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 12px; gap: 12px;">
+                        <span style="font-size: 14px; color: #6b7280; min-width: 80px; font-weight: 500;">Date:</span>
+                        <span id="detail-date" style="font-size: 14px; color: #374151; flex: 1; word-break: break-word;"></span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 12px; gap: 12px;">
+                        <span style="font-size: 14px; color: #6b7280; min-width: 80px; font-weight: 500;">Size:</span>
+                        <span id="detail-size" style="font-size: 14px; color: #374151; flex: 1; word-break: break-word;"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="tab-tags" class="tab-content">
+                <div style="margin-bottom: 20px;">
+                    <div class="tags-container" id="detail-tags"></div>
+                </div>
+            </div>
+            
+            <div id="tab-notes" class="tab-content">
+                <div style="margin-bottom: 24px;">
+                    <label for="detail-notes" style="font-size: 14px; color: #6b7280; min-width: 80px; font-weight: 500;">Notes:</label>
+                    <textarea id="detail-notes" class="notes-textarea" placeholder="Add your notes here..."></textarea>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px;">Quality Rating:</div>
+                    <div class="star-rating" id="quality-rating">
+                        <svg class="star" data-rating="1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px;">Content Rating:</div>
+                    <div class="star-rating" id="content-rating">
+                        <svg class="star" data-rating="1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="tab-metadata" class="tab-content">
+                <table class="metadata-table" id="metadata-table"></table>
+            </div>
+        </div>
+    </div>
+</div>

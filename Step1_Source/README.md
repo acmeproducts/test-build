@@ -1,0 +1,1 @@
+This folder contains the deconstructed, modular version of the baseline application.

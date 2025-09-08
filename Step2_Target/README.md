@@ -1,0 +1,1 @@
+This folder contains the fully refactored, architecturally superior version of the application.

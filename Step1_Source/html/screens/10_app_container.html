@@ -1,0 +1,42 @@
+<!-- Main App Container -->
+<div class="app-container hidden" id="app-container">
+    <div class="nav-button back" id="back-button">
+        <span id="back-button-spinner" class="spinner" style="display: none; width: 14px; height: 14px; margin-right: 6px;"></span>
+        ← Folders
+    </div>
+    <div class="nav-button details" id="details-button">Details →</div>
+    
+    <div class="image-viewport" id="image-viewport">
+        <img class="center-image zoomable" id="center-image" alt="Select a folder to start" />
+    </div>
+    
+    <div class="edge-glow top" id="edge-top"></div>
+    <div class="edge-glow bottom" id="edge-bottom"></div>
+    <div class="edge-glow left" id="edge-left"></div>
+    <div class="edge-glow right" id="edge-right"></div>
+    
+    <div class="pill-counter top" id="pill-priority" data-stack="priority">0</div>
+    <div class="pill-counter bottom" id="pill-trash" data-stack="trash">0</div>
+    <div class="pill-counter left active" id="pill-in" data-stack="in">0</div>
+    <div class="pill-counter right" id="pill-out" data-stack="out">0</div>
+    
+    <div class="empty-state hidden" id="empty-state">
+        <div class="empty-message">No more images in this stack</div>
+        <button class="new-images-button" id="select-another-stack-btn">Select Another Stack</button>
+        <button class="new-images-button" id="select-another-folder-btn" style="margin-top: 12px;">Choose Different Folder</button>
+    </div>
+    
+    <a id="filename-overlay" class="filename-overlay" href="#" target="_blank"></a>
+
+    <div id="focus-stack-name" class="focus-mode-ui"></div>
+    <div id="focus-image-count" class="focus-mode-ui"></div>
+    <div id="normal-image-count"></div>
+    <button id="focus-delete-btn" class="focus-mode-ui">
+        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+    </button>
+    
+    <div id="toast" class="toast"></div>
+    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+</div>
