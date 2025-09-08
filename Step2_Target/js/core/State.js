@@ -31,7 +31,13 @@ function AppState(pubSub) {
     }
 
     function initializeStacks(imageFiles) {
-        state.imageFiles = imageFiles;
+        state.imageFiles = imageFiles.map(file => {
+             const userMetadata = state.provider.getUserMetadata(file.id);
+             const allTags = userMetadata.tags || [];
+             allTags.forEach(tag => state.tags.add(tag));
+             return { ...file, ...userMetadata };
+        });
+        
         STACKS.forEach(stack => { state.stacks[stack] = []; });
 
         state.imageFiles.forEach(file => {
@@ -67,7 +73,7 @@ function AppState(pubSub) {
         _publishUpdate();
     }
     
-    function moveToStack(targetStack) {
+    function moveToStack({ targetStack }) {
         const currentStackArray = state.stacks[state.currentStack];
         if (!currentStackArray || currentStackArray.length === 0) return;
         
@@ -122,7 +128,7 @@ function AppState(pubSub) {
         pubSub.publish('ui:show-toast', { message: 'Stack order updated', type: 'success' });
     }
 
-    function changeStack(stackName) {
+    function changeStack({ stackName }) {
         if (state.currentStack !== stackName) {
             state.currentStack = stackName;
             state.currentStackPosition = 0;
@@ -142,27 +148,50 @@ function AppState(pubSub) {
         _publishUpdate();
     }
     
-    async deleteFiles(fileIds) {
+    async function deleteFiles(fileIds) {
         for (const fileId of fileIds) {
             await state.provider.deleteFile(fileId);
-            const fileIndex = state.imageFiles.findIndex(f => f.id === fileId);
-            if (fileIndex > -1) {
-                const [file] = state.imageFiles.splice(fileIndex, 1);
-                const stackIndex = state.stacks[file.stack].findIndex(f => f.id === fileId);
+            const file = state.imageFiles.find(f => f.id === fileId);
+            if (file) {
+                 const fileIndex = state.imageFiles.indexOf(file);
+                 state.imageFiles.splice(fileIndex, 1);
+                 
+                 const stackIndex = state.stacks[file.stack].indexOf(file);
+                 if (stackIndex > -1) {
+                     state.stacks[file.stack].splice(stackIndex, 1);
+                 }
+            }
+        }
+        _publishUpdate();
+        pubSub.publish('ui:show-toast', { message: `Moved ${fileIds.length} image(s) to provider trash`, type: 'success', important: true });
+    }
+    
+    async function moveFilesToFolder({ fileIds, targetFolderId, targetFolderName }) {
+        for(let i=0; i<fileIds.length; i++) {
+            const fileId = fileIds[i];
+            await state.provider.moveFileToFolder(fileId, targetFolderId);
+            const file = state.imageFiles.find(f => f.id === fileId);
+            if (file) {
+                const fileIndex = state.imageFiles.indexOf(file);
+                state.imageFiles.splice(fileIndex, 1);
+                const stackIndex = state.stacks[file.stack].indexOf(file);
                 if (stackIndex > -1) {
                     state.stacks[file.stack].splice(stackIndex, 1);
                 }
             }
         }
+        pubSub.publish('ui:show-toast', { message: `Moved ${fileIds.length} images to ${targetFolderName}`, type: 'success', important: true });
         _publishUpdate();
-        pubSub.publish('ui:show-toast', { message: `Moved ${fileIds.length} image(s) to provider trash`, type: 'success' });
     }
 
-    pubSub.subscribe('centerStage:image-flicked', ({ targetStack }) => moveToStack(targetStack));
-    pubSub.subscribe('centerStage:stack-selected', ({ stackName }) => changeStack(stackName));
+    pubSub.subscribe('centerStage:image-flicked', moveToStack);
+    pubSub.subscribe('centerStage:stack-selected', changeStack);
     pubSub.subscribe('grid:closed-with-selection', reorderStackWithSelection);
     pubSub.subscribe('details:metadata-updated', updateMetadata);
     pubSub.subscribe('centerStage:focus-delete-requested', ({ fileId }) => deleteFiles([fileId]));
+    pubSub.subscribe('action:confirmed:grid:bulk-delete-action', ({ payload }) => deleteFiles(payload.fileIds));
+    pubSub.subscribe('action:confirmed:grid:bulk-folder-move-action', ({ payload }) => moveFilesToFolder(payload));
+
 
     return {
         getState,
