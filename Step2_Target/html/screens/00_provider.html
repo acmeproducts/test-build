@@ -1,0 +1,41 @@
+<div class="screen" id="provider-screen">
+    <div class="card">
+        <h1 class="title" style="font-size: 32px;">Orbital8</h1>
+        <p class="subtitle">Select your cloud storage provider</p>
+        
+        <button class="provider-button" id="google-drive-btn">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M6.28 7L9.69 1h4.62l3.41 6zM16.05 7H7.95l4.05 7zM11.76 15h8.58L24 21H7.05z"/>
+            </svg>
+            Google Drive
+        </button>
+        
+        <button class="provider-button" id="onedrive-btn">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M17.75 8C16.82 8 16 8.82 16 9.75S16.82 11.5 17.75 11.5s1.75-.82 1.75-1.75S18.68 8 17.75 8z"/>
+            </svg>
+            OneDrive
+        </button>
+        
+        <div class="settings-section">
+            <div style="margin-bottom: 16px;">
+                <label style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500; display: block; margin-bottom: 8px;">Visual Cue Intensity:</label>
+                <div class="intensity-options">
+                    <button class="intensity-btn" data-level="low">Low</button>
+                    <button class="intensity-btn active" data-level="medium">Medium</button>
+                    <button class="intensity-btn" data-level="high">High</button>
+                </div>
+            </div>
+            
+            <div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="haptic-enabled" checked style="margin: 0;">
+                    Enable Haptic Feedback (Mobile)
+                </label>
+            </div>
+        </div>
+        
+        <div id="provider-status" class="status info">Choose your preferred cloud storage</div>
+    </div>
+    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+</div>
