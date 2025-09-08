@@ -1,3 +1,4 @@
+<!-- orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -515,7 +516,7 @@
         
         <div id="provider-status" class="status info">Choose your preferred cloud storage</div>
     </div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/00_provider.html --- -->
 
@@ -529,7 +530,7 @@
         <button class="button" id="gdrive-back-button" style="background: rgba(128,128,128,0.3);">← Back</button>
         <div id="gdrive-auth-status" class="status info">Enter your client secret to continue</div>
     </div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/01_gdrive_auth.html --- -->
 
@@ -542,7 +543,7 @@
         <button class="button" id="onedrive-back-button" style="background: rgba(128,128,128,0.3);">← Back</button>
         <div id="onedrive-auth-status" class="status info">Click to sign in with your Microsoft account</div>
     </div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/02_onedrive_auth.html --- -->
 
@@ -558,7 +559,7 @@
             <button class="folder-button danger" id="gdrive-logout">Disconnect</button>
         </div>
     </div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/03_gdrive_folders.html --- -->
 
@@ -574,7 +575,7 @@
             <button class="folder-button danger" id="onedrive-logout">Disconnect</button>
         </div>
     </div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/04_onedrive_folders.html --- -->
 
@@ -589,7 +590,7 @@
         </div>
         <button class="button" id="cancel-loading" style="background: rgba(239, 68, 68, 0.8); margin-top: 16px;">Cancel</button>
     </div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/05_loading.html --- -->
 
@@ -633,7 +634,7 @@
     </button>
     
     <div id="toast" class="toast"></div>
-    <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
+    <div class="app-footer">orbital8-goji-r2 (refactored) 2025-08-26 05:07 AM</div>
 </div>
 <!-- --- End: html/screens/10_app_container.html --- -->
 
@@ -810,33 +811,46 @@
     <script>
     // <![CDATA[
     (function() {
-        'use strict';
+        // --- Start: js/core/PubSub.js ---
+        function PubSub() {
+            const subscribers = {};
 
-        /* --- Start: js/app/PubSub.js --- */
-        const PubSub = {
-            events: {},
-            subscribe(event, callback) {
-                if (!this.events[event]) {
-                    this.events[event] = [];
+            function publish(eventName, data) {
+                if (!Array.isArray(subscribers[eventName])) {
+                    return;
                 }
-                this.events[event].push(callback);
-            },
-            publish(event, data) {
-                if (this.events[event]) {
-                    this.events[event].forEach(callback => callback(data));
-                }
+                subscribers[eventName].forEach((callback) => {
+                    callback(data);
+                });
             }
-        };
-        /* --- End: js/app/PubSub.js --- */
 
-        /* --- Start: js/app/state.js --- */
-        const AppState = (pubsub) => {
+            function subscribe(eventName, callback) {
+                if (!Array.isArray(subscribers[eventName])) {
+                    subscribers[eventName] = [];
+                }
+                subscribers[eventName].push(callback);
+                const index = subscribers[eventName].length - 1;
+
+                return {
+                    unsubscribe() {
+                        subscribers[eventName].splice(index, 1);
+                    },
+                };
+            }
+
+            return {
+                publish,
+                subscribe,
+            };
+        }
+        // --- End: js/core/PubSub.js ---
+
+        // --- Start: js/core/State.js ---
+        function AppState(pubSub) {
             const state = {
-                provider: null, providerType: null, fileCache: null, metadataExtractor: null,
-                syncManager: null,
-                visualCues: null, haptic: null, export: null, currentFolder: { id: null, name: '' },
+                provider: null, providerType: null, currentFolder: { id: null, name: '' },
                 imageFiles: [], currentImageLoadId: null, currentStack: 'in', currentStackPosition: 0,
-                isFocusMode: false, stacks: { in: 'in', out: 'out', priority: 'priority', trash: 'trash' },
+                isFocusMode: false, stacks: { in: [], out: [], priority: [], trash: [] },
                 isDragging: false, isPinching: false, initialDistance: 0, currentScale: 1,
                 maxScale: 4, minScale: 0.3, panOffset: { x: 0, y: 0 },
                 grid: { stack: null, selected: [], filtered: [], isDirty: false,
@@ -846,254 +860,233 @@
             };
 
             const STACKS = ['in', 'out', 'priority', 'trash'];
-            const STACK_NAMES = { 'in': 'In', 'out': 'Out', 'priority': 'Priority', 'trash': 'Trash' };
-            
-            Object.keys(state.stacks).forEach(key => {
-                state.stacks[key] = [];
-            });
 
-            const sortFiles = (files) => {
+            function getState() {
+                return { ...state };
+            }
+
+            function _publishUpdate() {
+                pubSub.publish('state:updated', getState());
+            }
+
+            function _sortFiles(files) {
                 return [...files].sort((a, b) => {
                     const seqA = a.stackSequence || 0;
                     const seqB = b.stackSequence || 0;
                     if (seqB !== seqA) return seqB - seqA;
                     return (a.name || '').localeCompare(b.name || '');
                 });
-            };
+            }
 
-            const actions = {
-                getState: () => state,
-                getStacks: () => STACKS,
-                getStackNames: () => STACK_NAMES,
-                
-                setProvider(provider, type) {
-                    state.provider = provider;
-                    state.providerType = type;
-                },
-                
-                setServices(services) {
-                    Object.assign(state, services);
-                },
+            function initializeStacks(imageFiles) {
+                state.imageFiles = imageFiles;
+                STACKS.forEach(stack => { state.stacks[stack] = []; });
 
-                setFolder(id, name) {
-                    state.currentFolder = { id, name };
-                },
-
-                setFocusMode(isFocus) {
-                    state.isFocusMode = isFocus;
-                    pubsub.publish('state:focusModeChanged', state.isFocusMode);
-                },
-
-                setCurrentImageLoadId(id) {
-                    state.currentImageLoadId = id;
-                },
-
-                setDragging(isDragging) {
-                    state.isDragging = isDragging;
-                },
-
-                setPinching(isPinching) {
-                    state.isPinching = isPinching;
-                },
-
-                setScaleAndPan(scale, pan, initialDistance = null) {
-                    state.currentScale = Math.max(state.minScale, Math.min(state.maxScale, scale));
-                    state.panOffset = pan;
-                    if (initialDistance) state.initialDistance = initialDistance;
-                    pubsub.publish('state:transformChanged');
-                },
-                
-                setImages(files) {
-                    state.imageFiles = files;
-                    this.initializeStacks();
-                    state.currentStack = 'in';
-                    state.currentStackPosition = 0;
-                    pubsub.publish('state:imagesLoaded');
-                },
-
-                initializeStacks() {
-                    STACKS.forEach(stack => state.stacks[stack] = []);
-                    state.imageFiles.forEach(file => {
-                        const stack = file.stack || 'in';
-                        if (STACKS.includes(stack)) {
-                            state.stacks[stack].push(file);
-                        } else {
-                            state.stacks.in.push(file);
-                        }
-                    });
-                    STACKS.forEach(stack => state.stacks[stack] = sortFiles(state.stacks[stack]));
-                    pubsub.publish('state:stacksUpdated');
-                },
-                
-                moveCurrentImageToStack(targetStack) {
-                    const stackArray = state.stacks[state.currentStack];
-                    if (!stackArray || stackArray.length === 0) return;
-                    
-                    const image = stackArray[state.currentStackPosition];
-                    if (!image) return;
-
-                    const originalStack = image.stack;
-                    const newSequence = Date.now();
-                    
-                    if (targetStack === originalStack) {
-                         const [item] = stackArray.splice(state.currentStackPosition, 1);
-                         item.stackSequence = newSequence;
-                         stackArray.push(item);
+                state.imageFiles.forEach(file => {
+                    const stack = file.stack || 'in';
+                    if (STACKS.includes(stack)) {
+                        state.stacks[stack].push(file);
                     } else {
-                        const [item] = stackArray.splice(state.currentStackPosition, 1);
-                        item.stack = targetStack;
-                        item.stackSequence = newSequence;
-                        state.stacks[targetStack].unshift(item);
-                        state.stacks[targetStack] = sortFiles(state.stacks[targetStack]);
+                        state.stacks.in.push(file);
                     }
-                    
-                    state.provider.updateUserMetadata(image.id, { stack: targetStack, stackSequence: newSequence });
-                    
-                    if (state.currentStackPosition >= stackArray.length && stackArray.length > 0) {
-                        state.currentStackPosition = stackArray.length - 1;
-                    }
+                });
+                
+                STACKS.forEach(stack => {
+                    state.stacks[stack] = _sortFiles(state.stacks[stack]);
+                });
 
-                    pubsub.publish('state:imageMoved', { image, from: originalStack, to: targetStack });
-                    pubsub.publish('state:stacksUpdated');
-                },
+                state.currentStack = 'in';
+                state.currentStackPosition = 0;
+                _publishUpdate();
+            }
 
-                updateUserMetadata(fileId, updates) {
-                    const file = state.imageFiles.find(f => f.id === fileId);
-                    if (!file) return;
-                    Object.assign(file, updates);
-                    state.provider.updateUserMetadata(fileId, updates);
-                    if (updates.tags) pubsub.publish('state:tagsUpdated');
-                },
+            function selectFolder(folderId, folderName, providerType, provider) {
+                state.currentFolder = { id: folderId, name: folderName };
+                state.providerType = providerType;
+                state.provider = provider;
+            }
+            
+            function resetToProviderSelection() {
+                state.provider = null;
+                state.providerType = null;
+                state.imageFiles = [];
+                state.currentFolder = { id: null, name: '' };
+                STACKS.forEach(stack => { state.stacks[stack] = []; });
+                _publishUpdate();
+            }
+            
+            function moveToStack(targetStack) {
+                const currentStackArray = state.stacks[state.currentStack];
+                if (!currentStackArray || currentStackArray.length === 0) return;
+                
+                const currentImage = currentStackArray[state.currentStackPosition];
+                if (!currentImage) return;
 
-                setCurrentStack(stackName) {
+                const originalStackName = state.currentStack;
+
+                if (targetStack === originalStackName) {
+                    const otherImages = currentStackArray.filter(img => img.id !== currentImage.id);
+                    const minSequence = otherImages.length > 0 ? Math.min(...otherImages.map(img => img.stackSequence || 0)) : Date.now();
+                    currentImage.stackSequence = minSequence - 1;
+                    const [item] = currentStackArray.splice(state.currentStackPosition, 1);
+                    currentStackArray.push(item);
+                } else {
+                    currentImage.stack = targetStack;
+                    currentImage.stackSequence = Date.now();
+                    const [item] = currentStackArray.splice(state.currentStackPosition, 1);
+                    state.stacks[targetStack].unshift(item);
+                    state.stacks[targetStack] = _sortFiles(state.stacks[targetStack]);
+                }
+                
+                state.provider.updateUserMetadata(currentImage.id, {
+                    stack: currentImage.stack,
+                    stackSequence: currentImage.stackSequence
+                });
+                
+                _publishUpdate();
+            }
+
+            function reorderStackWithSelection({ stackName, selectedFileIds }) {
+                if (selectedFileIds.length === 0) return;
+
+                const stackArray = state.stacks[stackName];
+                const selectedIds = new Set(selectedFileIds);
+
+                const topItems = stackArray.filter(f => selectedIds.has(f.id));
+                const bottomItems = stackArray.filter(f => !selectedIds.has(f.id));
+                
+                const newStack = [...topItems, ...bottomItems];
+                const timestamp = Date.now();
+                
+                for (let i = 0; i < newStack.length; i++) {
+                    newStack[i].stackSequence = timestamp - i;
+                    state.provider.updateUserMetadata(newStack[i].id, { stackSequence: newStack[i].stackSequence });
+                }
+
+                state.stacks[stackName] = newStack;
+                state.currentStackPosition = 0;
+
+                _publishUpdate();
+                pubSub.publish('ui:show-toast', { message: 'Stack order updated', type: 'success' });
+            }
+
+            function changeStack(stackName) {
+                if (state.currentStack !== stackName) {
                     state.currentStack = stackName;
                     state.currentStackPosition = 0;
-                    pubsub.publish('state:stackChanged', stackName);
-                },
-
-                navigateImage(direction) {
-                    const stack = state.stacks[state.currentStack];
-                    if (stack.length === 0) return;
-                    const newPosition = (state.currentStackPosition + direction + stack.length) % stack.length;
-                    state.currentStackPosition = newPosition;
-                    pubsub.publish('state:imageChanged');
-                },
-
-                setGridSelection(selected) {
-                    state.grid.selected = selected;
-                    state.grid.isDirty = true;
-                    pubsub.publish('state:gridSelectionChanged', state.grid.selected.length);
-                },
-            };
-
-            return actions;
-        };
-        /* --- End: js/app/state.js --- */
-
-        /* --- Start: js/utils.js --- */
-        const Utils = {
-            qs(selector, context = document) { return context.querySelector(selector); },
-            qsa(selector, context = document) { return Array.from(context.querySelectorAll(selector)); },
-            
-            showScreen(screenId) {
-                this.qsa('.screen, .app-container').forEach(el => {
-                    el.classList.toggle('hidden', el.id !== screenId);
-                });
-            },
-            
-            showModal(id) { 
-                const el = this.qs(`#${id}`);
-                if (el) el.classList.remove('hidden'); 
-            },
-            
-            hideModal(id) { 
-                const el = this.qs(`#${id}`);
-                if (el) el.classList.add('hidden'); 
-            },
-            
-            showToast(message, type = 'success', important = false) {
-                if (!important && Math.random() < 0.7) return;
-                const toast = this.qs('#toast');
-                toast.textContent = message;
-                toast.className = `toast ${type} show`;
-                setTimeout(() => toast.classList.remove('show'), 3000);
-            },
-            
-            formatFileSize(bytes) {
-                if (!bytes) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            },
-            
-            updateLoadingProgress(current, total, message = '') {
-                this.qs('#loading-counter').textContent = current;
-                this.qs('#loading-message').textContent = message || (total ? 
-                    `Processing ${current} of ${total} items...` : 
-                    `Found ${current} items`);
-                
-                if (total > 0) {
-                    const percentage = (current / total) * 100;
-                    this.qs('#loading-progress-bar').style.width = `${percentage}%`;
+                    _publishUpdate();
                 }
             }
-        };
-        /* --- End: js/utils.js --- */
+            
+            function updateMetadata({ fileId, updates }) {
+                const file = state.imageFiles.find(f => f.id === fileId);
+                if (file) {
+                    Object.assign(file, updates);
+                    state.provider.updateUserMetadata(fileId, updates);
+                    if(updates.tags) {
+                        updates.tags.forEach(t => state.tags.add(t));
+                    }
+                }
+                _publishUpdate();
+            }
+            
+            async function deleteFiles(fileIds) {
+                for (const fileId of fileIds) {
+                    await state.provider.deleteFile(fileId);
+                    const fileIndex = state.imageFiles.findIndex(f => f.id === fileId);
+                    if (fileIndex > -1) {
+                        const [file] = state.imageFiles.splice(fileIndex, 1);
+                        const stackIndex = state.stacks[file.stack].findIndex(f => f.id === fileId);
+                        if (stackIndex > -1) {
+                            state.stacks[file.stack].splice(stackIndex, 1);
+                        }
+                    }
+                }
+                _publishUpdate();
+                pubSub.publish('ui:show-toast', { message: `Moved ${fileIds.length} image(s) to provider trash`, type: 'success' });
+            }
 
-        /* --- Start: services --- */
-        class VisualCueManager {
-            constructor() {
-                this.currentIntensity = localStorage.getItem('orbital8_visual_intensity') || 'medium';
-                this.applyIntensity(this.currentIntensity);
-            }
-            
-            setIntensity(level) {
-                this.currentIntensity = level;
-                this.applyIntensity(level);
-                localStorage.setItem('orbital8_visual_intensity', level);
-                
-                Utils.qsa('.intensity-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.level === level);
-                });
-            }
-            
-            applyIntensity(level) {
-                const settings = {
-                    low: { glow: 0.3, ripple: 1000, extraEffects: false },
-                    medium: { glow: 0.6, ripple: 1500, extraEffects: false },
-                    high: { glow: 1.0, ripple: 2000, extraEffects: true }
-                };
-                
-                const config = settings[level];
-                document.documentElement.style.setProperty('--glow', config.glow);
-                document.documentElement.style.setProperty('--ripple', `${config.ripple}ms`);
-                document.body.classList.toggle('high-intensity-mode', config.extraEffects);
-            }
+            pubSub.subscribe('centerStage:image-flicked', ({ targetStack }) => moveToStack(targetStack));
+            pubSub.subscribe('centerStage:stack-selected', ({ stackName }) => changeStack(stackName));
+            pubSub.subscribe('grid:closed-with-selection', reorderStackWithSelection);
+            pubSub.subscribe('details:metadata-updated', updateMetadata);
+            pubSub.subscribe('centerStage:focus-delete-requested', ({ fileId }) => deleteFiles([fileId]));
+
+            return {
+                getState,
+                initializeStacks,
+                selectFolder,
+                resetToProviderSelection,
+                updateMetadata,
+                deleteFiles
+            };
         }
+        // --- End: js/core/State.js ---
 
-        class HapticFeedbackManager {
-            constructor() {
-                this.isEnabled = localStorage.getItem('orbital8_haptic_enabled') !== 'false';
-                this.isSupported = 'vibrate' in navigator;
-                const checkbox = Utils.qs('#haptic-enabled');
-                if (checkbox) checkbox.checked = this.isEnabled;
-            }
-            
-            setEnabled(enabled) {
-                this.isEnabled = enabled;
-                localStorage.setItem('orbital8_haptic_enabled', enabled);
-            }
-            
-            trigger(type) {
-                if (!this.isEnabled || !this.isSupported) return;
-                const patterns = { swipe: [20, 40], pillTap: [35], buttonPress: [25], error: [100, 50, 100] };
-                if (patterns[type] && navigator.vibrate) navigator.vibrate(patterns[type]);
-            }
-        }
-        /* --- End: services --- */
+        // --- Start: js/core/Utils.js ---
+        // This file will be populated with the refactored Utils logic
+        // --- End: js/core/Utils.js ---
 
-    })()
+        // --- Start: js/core/services/file-cache.js ---
+        // This file will be populated with the refactored file-cache logic
+        // --- End: js/core/services/file-cache.js ---
+
+        // --- Start: js/core/services/haptic.js ---
+        // This file will be populated with the refactored haptic logic
+        // --- End: js/core/services/haptic.js ---
+
+        // --- Start: js/core/services/metadata.js ---
+        // This file will be populated with the refactored metadata logic
+        // --- End: js/core/services/metadata.js ---
+
+        // --- Start: js/core/services/visual-cues.js ---
+        // This file will be populated with the refactored visual-cues logic
+        // --- End: js/core/services/visual-cues.js ---
+
+        // --- Start: js/core/services/export.js ---
+        // This file will be populated with the refactored export logic
+        // --- End: js/core/services/export.js ---
+
+        // --- Start: js/core/providers/base-provider.js ---
+        // This file will be populated with the refactored base-provider logic
+        // --- End: js/core/providers/base-provider.js ---
+
+        // --- Start: js/core/providers/googledrive-provider.js ---
+        // This file will be populated with the refactored googledrive-provider logic
+        // --- End: js/core/providers/googledrive-provider.js ---
+
+        // --- Start: js/core/providers/onedrive-provider.js ---
+        // This file will be populated with the refactored onedrive-provider logic
+        // --- End: js/core/providers/onedrive-provider.js ---
+        
+        // --- Start: js/core/services/sync.js ---
+        // This file will be populated with the refactored sync logic
+        // --- End: js/core/services/sync.js ---
+
+        // --- Start: js/views/ActionView.js ---
+        // This file will be populated with the refactored ActionView logic
+        // --- End: js/views/ActionView.js ---
+        
+        // --- Start: js/views/DetailsView.js ---
+        // This file will be populated with the refactored DetailsView logic
+        // --- End: js/views/DetailsView.js ---
+
+        // --- Start: js/views/GridView.js ---
+        // This file will be populated with the refactored GridView logic
+        // --- End: js/views/GridView.js ---
+
+        // --- Start: js/views/CenterStageView.js ---
+        // This file will be populated with the refactored CenterStageView logic
+        // --- End: js/views/CenterStageView.js ---
+
+        // --- Start: js/views/SetupView.js ---
+        // This file will be populated with the refactored SetupView logic
+        // --- End: js/views/SetupView.js ---
+
+        // --- Start: js/main.js ---
+        // This file will be populated with the refactored main logic
+        // --- End: js/main.js ---
+    })();
     // ]]>
     </script>
 </body>

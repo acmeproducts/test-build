@@ -1,0 +1,153 @@
+# Orbital8 Goji - Step 2 Execution Plan
+
+# =================================================================================================
+# == OVERVIEW
+# =================================================================================================
+# This is the master, unified execution plan for the Step 2 Architectural Refactor.
+# It is the tangible output of the "EXECUTION PLANNING" phase.
+# This single, auditable script drives the entire process from a clean directory to a final,
+# verifiable build artifact. It is generated from the `build-spec.js`.
+
+# =================================================================================================
+# == PROCESS 1: CREATE-STRUCTURE (Scaffolding)
+# =================================================================================================
+# Objective: Create a pristine, empty file structure that matches the new View-Based Architecture.
+# Input: The `scaffolding` definition from `build-spec.js`.
+# Output: An empty but correctly structured `Step2_Target` directory.
+# -------------------------------------------------------------------------------------------------
+
+# // CLEAN //
+# ACTION: Recursively delete all files and directories within `Step2_Target` AND `Step3_Delivery`,
+#         WITH THE EXCEPTION of `README.md` and the planning artifacts (`analysis-report.txt`,
+#         `build-spec.js`, `execution-plan.txt`).
+
+# // CREATE //
+# ACTION: Create the following empty directories and files in `Step2_Target`:
+
+- CREATE DIR: /css/
+- CREATE DIR: /html/modals/
+- CREATE DIR: /html/screens/
+- CREATE DIR: /js/core/providers/
+- CREATE DIR: /js/core/services/
+- CREATE DIR: /js/views/
+
+- CREATE FILE: /css/main.css
+- CREATE FILE: /css/components.css
+
+- CREATE FILE: /html/modals/action.html
+- CREATE FILE: /html/modals/details.html
+- CREATE FILE: /html/modals/grid.html
+
+- CREATE FILE: /html/screens/00_provider.html
+- CREATE FILE: /html/screens/01_gdrive_auth.html
+- CREATE FILE: /html/screens/02_onedrive_auth.html
+- CREATE FILE: /html/screens/03_gdrive_folders.html
+- CREATE FILE: /html/screens/04_onedrive_folders.html
+- CREATE FILE: /html/screens/05_loading.html
+- CREATE FILE: /html/screens/10_app_container.html
+
+- CREATE FILE: /js/core/PubSub.js
+- CREATE FILE: /js/core/State.js
+- CREATE FILE: /js/core/Utils.js
+- CREATE FILE: /js/core/providers/base-provider.js
+- CREATE FILE: /js/core/providers/googledrive-provider.js
+- CREATE FILE: /js/core/providers/onedrive-provider.js
+- CREATE FILE: /js/core/services/export.js
+- CREATE FILE: /js/core/services/file-cache.js
+- CREATE FILE: /js/core/services/haptic.js
+- CREATE FILE: /js/core/services/metadata.js
+- CREATE FILE: /js/core/services/sync.js
+- CREATE FILE: /js/core/services/visual-cues.js
+
+- CREATE FILE: /js/views/ActionView.js
+- CREATE FILE: /js/views/CenterStageView.js
+- CREATE FILE: /js/views/DetailsView.js
+- CREATE FILE: /js/views/GridView.js
+- CREATE FILE: /js/views/SetupView.js
+
+- CREATE FILE: /js/main.js
+
+
+# =================================================================================================
+# == PROCESS 2: EXECUTE-REFACTOR (Module Population)
+# =================================================================================================
+# Objective: Populate the empty scaffolding with the refactored code.
+# Input: The `modules` map from `build-spec.js` and the `Step1_Source` directory.
+# Output: A fully populated `Step2_Target` directory.
+# -------------------------------------------------------------------------------------------------
+
+# // REFACTOR LOOP //
+# ACTION: For each target file created above, populate it by extracting logic from the specified
+#         source files and rewriting it to conform to the new API contracts.
+
+- POPULATE: `Step2_Target/css/` and `Step2_Target/html/`
+  - ACTION: Perform a direct copy of all CSS and HTML files from `Step1_Source` to `Step2_Target`.
+
+- POPULATE: `Step2_Target/js/core/PubSub.js`
+  - ACTION: Implement the lightweight Pub/Sub class with `subscribe`, `publish`, and `unsubscribe` methods.
+
+- POPULATE: `Step2_Target/js/core/State.js`
+  - ACTION: Consolidate `state.js` and the state-mutation logic from `core.js` and `app.js`. Encapsulate the state object. Create public methods that perform mutations and then publish `state:updated`. Add subscription handlers for events that trigger state changes (e.g., `centerStage:image-flicked`).
+
+- POPULATE: `Step2_Target/js/core/Utils.js`
+  - ACTION: Port stateless helpers from `utils.js`. DEPRECATE the global `elements` cache. Add `qs`/`qsa` functions. Inject PubSub dependency for `showToast`.
+
+- POPULATE: `Step2_Target/js/views/SetupView.js`
+  - ACTION: Consolidate all logic for the provider/auth/folder screens from `app.js`, `events.js`, `gdrive-folders.js`, and `onedrive-folders.js`. This module now owns its DOM elements and event listeners, publishing events like `setup:provider-selected` and `setup:folder-selected`.
+
+- POPULATE: `Step2_Target/js/views/CenterStageView.js`
+  - ACTION: Consolidate all logic for the main triage screen from `core.js`, `ui.js`, and `gestures.js`. This module owns the image viewport, pills, and nav buttons. It listens for `state:updated` to re-render and publishes gesture events like `centerStage:image-flicked`.
+
+- POPULATE: `Step2_Target/js/views/GridView.js`
+  - ACTION: Encapsulate all logic from `grid.js`. This module owns the grid modal. It subscribes to an `app:open-grid-view` event. It binds its own listeners for bulk operations and publishes specific action events like `grid:bulk-delete-action`. It also publishes the critical `grid:closed-with-selection` event.
+
+- POPULATE: `Step2_Target/js/views/DetailsView.js`
+  - ACTION: Encapsulate all logic from `details.js`. This module owns the details modal. It subscribes to `app:open-details-view`. It binds its own listeners for metadata edits and publishes `details:metadata-updated`.
+
+- POPULATE: `Step2_Target/js/views/ActionView.js`
+  - ACTION: Encapsulate logic from `modal.js`. This module is a "dumb" component that subscribes to various action requests (e.g., `grid:bulk-delete-action`) and publishes a generic `action:confirmed` event.
+
+- POPULATE: `Step2_Target/js/main.js` (The App Orchestrator)
+  - ACTION: This is the application entry point. It will:
+    1. Instantiate all core services (PubSub, State, etc.).
+    2. Instantiate all Views, injecting dependencies (like the PubSub bus).
+    3. Wire the application together. This is the only place where cross-module connections are explicitly made (e.g., `pubSub.subscribe('grid:closed-with-selection', (payload) => state.reorderStack(payload))`).
+
+- POPULATE: All other `core/services/` and `core/providers/` files.
+  - ACTION: Copy the source from Step 1 and refactor to remove any global state dependencies, accepting them as constructor/method arguments instead.
+
+
+# =================================================================================================
+# == PROCESS 3: CREATE-BUILD (Delivery & Verification)
+# =================================================================================================
+# Objective: Assemble the refactored modules into a single, verifiable HTML file.
+# Input: The populated `Step2_Target` directory.
+# Output: A single `build.html` in the `Step3_Delivery` folder.
+# -------------------------------------------------------------------------------------------------
+
+# // BUILD //
+# ACTION: Generate the file `Step3_Delivery/build.html` by inlining the contents of the
+#         `Step2_Target` files in the following precise order:
+
+1.  **HTML Shell:** Create the main `<!DOCTYPE html>`, `<html>`, `<head>`, and `<body>` structure.
+2.  **Inline CSS:**
+    - Inject the full content of `Step2_Target/css/main.css`.
+    - Inject the full content of `Step2_Target/css/components.css`.
+3.  **Inject MSAL Script Tag:** Add the `<script src="...">` tag for the MSAL library.
+4.  **Inject HTML Partials:** In the `<body>`, inject the full content of all `Step2_Target/html/screens/*.html` and `Step2_Target/html/modals/*.html` files in their original numerical/logical order.
+5.  **Inline Refactored JavaScript:** At the end of the `<body>`, open a single `<script>` tag and inject the full content of the `Step2_Target/js/**/*.js` files in the correct dependency order, wrapped in an IIFE `(function() { ... })();`.
+    - **CRITICAL LOAD ORDER:**
+      1.  `js/core/PubSub.js`
+      2.  `js/core/State.js`
+      3.  `js/core/Utils.js`
+      4.  `js/core/services/*` (all service files)
+      5.  `js/core/providers/base-provider.js`
+      6.  `js/core/providers/googledrive-provider.js`
+      7.  `js/core/providers/onedrive-provider.js`
+      8.  `js/views/ActionView.js`
+      9.  `js/views/DetailsView.js`
+      10. `js/views/GridView.js`
+      11. `js/views/CenterStageView.js`
+      12. `js/views/SetupView.js`
+      13. `js/main.js` (The Orchestrator runs last)
+```

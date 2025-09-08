@@ -1,13 +1,12 @@
 class BaseProvider {
-    constructor() {
-        // This class is intended to be extended by specific provider implementations.
+    constructor(appState) {
+        this.appState = appState;
     }
 
-    // This method is now a simple, synchronous cache lookup for OneDrive
-    // or a direct property access for Google Drive.
-    getUserMetadata(fileId, allFiles, metadataCache) {
+    getUserMetadata(fileId) {
+        const state = this.appState.getState();
         if (this.name === 'googledrive') {
-            const file = allFiles.find(f => f.id === fileId);
+            const file = state.imageFiles.find(f => f.id === fileId);
             const providerData = file ? file.appProperties : {};
             return {
                 stack: providerData?.slideboxStack || 'in',
@@ -18,8 +17,8 @@ class BaseProvider {
                 stackSequence: parseInt(providerData?.stackSequence) || 0
             };
         } else { // OneDrive
-            if (metadataCache && metadataCache.has(fileId)) {
-                return metadataCache.get(fileId);
+            if (this.metadataCache.has(fileId)) {
+                return this.metadataCache.get(fileId);
             }
             return {
                 stack: 'in', tags: [], qualityRating: 0, contentRating: 0, notes: '', stackSequence: 0
@@ -27,10 +26,10 @@ class BaseProvider {
         }
     }
 
-    // This method now updates the in-memory cache and marks the file as dirty for OneDrive.
-    updateUserMetadata(fileId, updates, allFiles) {
+    updateUserMetadata(fileId, updates) {
+        const state = this.appState.getState();
         if (this.name === 'googledrive') {
-            const file = allFiles.find(f => f.id === fileId);
+            const file = state.imageFiles.find(f => f.id === fileId);
             if(file) Object.assign(file, updates);
 
             const properties = {};
@@ -44,12 +43,12 @@ class BaseProvider {
             return this.updateFileProperties(fileId, properties);
 
         } else { // OneDrive
-            const currentMetadata = this.getUserMetadata(fileId, null, this.metadataCache);
+            const currentMetadata = this.getUserMetadata(fileId);
             const newMetadata = { ...currentMetadata, ...updates };
             this.metadataCache.set(fileId, newMetadata);
-            this.dirtyFiles.add(fileId);
+            this.dirtyFiles.add(fileId); 
             
-            const file = allFiles.find(f => f.id === fileId);
+            const file = state.imageFiles.find(f => f.id === fileId);
             if(file) Object.assign(file, updates);
         }
     }

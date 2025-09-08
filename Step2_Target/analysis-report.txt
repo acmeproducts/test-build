@@ -1,0 +1,86 @@
+# Orbital8 Goji - Step 2 Analysis Report
+
+## 1. Objective
+This document is the tangible artifact of the **Analysis Phase**. Its purpose is to create an auditable "Golden Thread Map" by tracing every user-facing feature and business logic from the validated `Step1_Source` code.
+
+This report will serve as the direct, definitive input for the **Documentation Phase**, where the `build-spec.js` will be created.
+
+---
+## 2. Systemic Architectural Issues Identified
+
+### A. Global State & Implicit Coupling
+- **Description:** The entire application relies on a single, mutable global `state` object (`js/app/state.js`). Modules frequently reach across the application to directly read from and write to this object (e.g., `Grid.js` directly modifying `state.stacks`).
+- **Problem:** This creates tight, implicit coupling. A change in one module can have unexpected side effects in another. It is impossible to trace the flow of data, making debugging extremely difficult. The `GridView` -> `CenterStage` reordering is a prime example of this anti-pattern.
+- **Refactor Goal:** Eliminate all direct access to the `state` object from view modules. All state mutations will be centralized in a new `State.js` store, which will announce changes via a `Pub/Sub` system.
+
+### B. Monolithic Event Handling
+- **Description:** A single, massive `Events.js` module is responsible for attaching listeners to hundreds of DOM elements across dozens of features.
+- **Problem:** This violates the principle of cohesion. The logic for how a component behaves is completely separated from the component itself. To understand the Grid, a developer must cross-reference `grid.js` and `events.js`.
+- **Refactor Goal:** **Deprecate `Events.js` entirely.** All event listener setup will be moved into the `init()` method of the specific View module that owns the UI element.
+
+### C. Lack of Cohesion in UI Logic
+- **Description:** The logic for a single user-facing view is scattered across multiple files. For example, the main "Center Stage" screen's logic is split between `core.js` (image display), `gestures.js` (swiping), and `ui.js` (pill counters).
+- **Problem:** This makes the codebase difficult to understand and maintain. Modifying a single view requires editing multiple, seemingly unrelated files.
+- **Refactor Goal:** Consolidate all related UI logic into cohesive View modules (e.g., `CenterStageView.js`, `SetupView.js`) as per the View-Based Architecture.
+
+### D. DRY Principle Violations (Don't Repeat Yourself)
+- **Description:**
+    1.  **Footer:** The application footer HTML and its version string are repeated in every single HTML screen partial.
+    2.  **Provider Logic:** While the core API calls are different, much of the surrounding logic for folder navigation and file processing in `googledrive-provider.js` and `onedrive-provider.js` is similar.
+- **Problem:** This creates a maintenance nightmare. A simple version number change requires editing 10+ locations. A bug fix in one provider's folder logic needs to be manually replicated in the other.
+- **Refactor Goal:**
+    1.  **Phase 2 (Architectural):** Acknowledge this issue. The footer will be consolidated into a single common component in the HTML build process.
+    2.  **Phase 4 (Optimization):** Abstract the common provider logic into the `BaseProvider` class to be inherited by the specific provider implementations.
+
+---
+## 3. Golden Thread Feature Map
+
+### Feature Group: Application Setup & Authentication
+
+| Feature / User Story | Step 1 Source "Golden Thread" |
+| :--- | :--- |
+| **User selects a Cloud Provider** | `events.js` (`setupProviderSelection`) -> `app.js` (`selectGoogleDrive` / `selectOneDrive`) -> `utils.js` (`showScreen`) |
+| **User Authenticates with Google Drive** | `events.js` (`setupGoogleDriveAuth`) -> `googledrive-provider.js` (`authenticate`) -> `gdrive-folders.js` (`load`) |
+| **User Authenticates with OneDrive** | `events.js` (`setupOneDriveAuth`) -> `onedrive-provider.js` (`authenticate`) -> `sync.js` (`MetadataSyncManager` init) -> `onedrive-folders.js` (`load`) |
+| **User Selects a Folder (GDrive)** | `gdrive-folders.js` (`load` adds listeners) -> `app.js` (`initializeWithProvider`) |
+| **User Navigates & Selects a Folder (OneDrive)**| `onedrive-folders.js` (event listeners in `display`) -> `onedrive-provider.js` (`drillIntoFolder`/`navigateToParent`) -> `app.js` (`initializeWithProvider`) |
+| **User Cancels/Goes Back** | `events.js` (various back button listeners) -> `app.js` (`backToProviderSelection`) |
+| **Image Files are Loaded** | `app.js` (`initializeWithProvider` -> `loadImages`) -> `[provider].js` (`getFilesAndMetadata`) -> `app.js` (`processFileWithProviderMetadata`) -> `core.js` (`initializeStacks`) |
+
+### Feature Group: Center Stage (Triage View)
+
+| Feature / User Story | Step 1 Source "Golden Thread" |
+| :--- | :--- |
+| **Viewing an Image** | `core.js` (`displayCurrentImage`) -> `utils.js` (`setImageSrc`) |
+| **Swiping/Flicking an Image to a Stack** | `gestures.js` (`handleEnd` -> `executeFlick`) -> `ui.js` (`acknowledgePillCounter`) -> `core.js` (`moveToStack`) -> `app.js` (`moveFileToStack`) |
+| **Pill Counter UI Updates** | `core.js` (`updateStackCounts`) |
+| **Switching Stacks via Pill Counter** | `events.js` (`setupPillCounters`) -> `ui.js` (`switchToStack`) -> `core.js` (`displayTopImageFromStack`) |
+| **Entering/Exiting Focus Mode** | `gestures.js` (`handleStart` detects double tap -> `toggleFocusMode`) |
+| **Navigating Images in Focus Mode** | `gestures.js` (`setupFocusMode` listeners -> `nextImage`/`prevImage`) -> `core.js` (`displayCurrentImage`) |
+| **Deleting Image in Focus Mode** | `events.js` (`setupFocusMode`) -> `gestures.js` (`deleteCurrentImage`) -> `app.js` (`deleteFile`) |
+| **Requesting Grid View** | `events.js` (`setupPillCounters` when stack is active) -> `grid.js` (`open`) |
+| **Requesting Details View** | `events.js` (`setupDetailsModal`) -> `details.js` (`show`) |
+
+### Feature Group: Grid View (Bulk Management)
+
+| Feature / User Story | Step 1 Source "Golden Thread" |
+| :--- | :--- |
+| **Selecting/Deselecting Images** | `grid.js` (`renderBatch` adds listeners -> `toggleSelection`) -> `grid.js` (`updateSelectionUI`) |
+| **Closing Grid & Reordering Stack** | `grid.js` (`close` -> `reorderStackOnClose`) -> `app.js` (`updateUserMetadata`) -> `core.js` (`displayCurrentImage`) |
+| **Bulk Operation: Move to Stack** | `events.js` (`setupActionButtons`) -> `modal.js` (`setupMoveAction` -> `executeMove`) -> `app.js` (`moveFileToStack`) |
+| **Bulk Operation: Tag** | `events.js` (`setupActionButtons`) -> `modal.js` (`setupTagAction` -> `executeTag`) -> `app.js` (`updateUserMetadata`) |
+| **Bulk Operation: Delete** | `events.js` (`setupActionButtons`) -> `modal.js` (`setupDeleteAction` -> `executeDelete`) -> `app.js` (`deleteFile`) |
+| **Bulk Operation: Export** | `events.js` (`setupActionButtons`) -> `modal.js` (`setupExportAction` -> `executeExport`) -> `metadata.js` (`fetchMetadata`) -> `export.js` (`exportData`) |
+| **Bulk Operation: Move to Folder** | `events.js` (`setupActionButtons`) -> `modal.js` (`setupFolderMoveAction` -> `executeFolderMove`) -> `app.js` (`returnToFolderSelection` & sets `state.folderMoveMode`) -> `[folder_component].js` detects mode -> `app.js` (`handleFolderMoveSelection`) |
+
+### Feature Group: Details View
+
+| Feature / User Story | Step 1 Source "Golden Thread" |
+| :--- | :--- |
+| **Viewing Image Info** | `details.js` (`show` -> `populateInfoTab`) |
+| **Adding/Removing Tags** | `details.js` (`populateTagsTab` adds listeners -> `showAddTagInput` / `removeTag`) -> `app.js` (`updateUserMetadata`) |
+| **Editing Notes** | `details.js` (`populateNotesTab` adds blur listener) -> `app.js` (`updateUserMetadata`) |
+| **Setting Star Ratings** | `details.js` (`setupStarRating` adds click listeners) -> `app.js` (`updateUserMetadata`) |
+| **Viewing PNG Metadata** | `details.js` (`show` -> `populateMetadataTab`) -> `app.js` (`processFileMetadata`) -> `metadata.js` (`fetchMetadata`) |
+| **Copying Metadata** | `events.js` (`setupCopyButtons`) -> `details.js` (`copyToClipboard`) |
+```
