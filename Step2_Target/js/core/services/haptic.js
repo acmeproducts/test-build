@@ -1,4 +1,5 @@
-function HapticFeedbackManager() {
+
+function HapticFeedbackManager(pubSub) {
     let isEnabled = localStorage.getItem('orbital8_haptic_enabled') !== 'false';
     const isSupported = 'vibrate' in navigator;
     
@@ -7,7 +8,7 @@ function HapticFeedbackManager() {
         localStorage.setItem('orbital8_haptic_enabled', enabled);
     }
     
-    function triggerFeedback(type) {
+    function triggerFeedback({ type }) {
         if (!isEnabled || !isSupported) return;
         
         const patterns = {
@@ -25,12 +26,18 @@ function HapticFeedbackManager() {
 
     function init() {
         const checkbox = document.getElementById('haptic-enabled');
-        if (checkbox) checkbox.checked = isEnabled;
+        if (checkbox) {
+            checkbox.checked = isEnabled;
+            checkbox.addEventListener('change', (e) => setEnabled(e.target.checked));
+        }
+        pubSub.subscribe('haptic:trigger', triggerFeedback);
     }
 
     return {
-        init,
-        setEnabled,
-        triggerFeedback
+        init
     };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.HapticFeedbackManager = HapticFeedbackManager;

@@ -1,3 +1,6 @@
+
+// This class is intended to be extended by specific providers.
+// It is not attached to the window.AppModules object.
 class BaseProvider {
     constructor(appState) {
         this.appState = appState;
@@ -17,7 +20,7 @@ class BaseProvider {
                 stackSequence: parseInt(providerData?.stackSequence) || 0
             };
         } else { // OneDrive
-            if (this.metadataCache.has(fileId)) {
+            if (this.metadataCache && this.metadataCache.has(fileId)) {
                 return this.metadataCache.get(fileId);
             }
             return {
@@ -45,8 +48,12 @@ class BaseProvider {
         } else { // OneDrive
             const currentMetadata = this.getUserMetadata(fileId);
             const newMetadata = { ...currentMetadata, ...updates };
-            this.metadataCache.set(fileId, newMetadata);
-            this.dirtyFiles.add(fileId); 
+            if (this.metadataCache) {
+                 this.metadataCache.set(fileId, newMetadata);
+            }
+            if (this.dirtyFiles) {
+                this.dirtyFiles.add(fileId); 
+            }
             
             const file = state.imageFiles.find(f => f.id === fileId);
             if(file) Object.assign(file, updates);

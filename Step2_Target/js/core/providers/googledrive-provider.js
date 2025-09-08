@@ -1,3 +1,4 @@
+
 class GoogleDriveProvider extends BaseProvider {
     constructor(appState) {
         super(appState);
@@ -127,7 +128,7 @@ class GoogleDriveProvider extends BaseProvider {
         
         const tokens = await response.json();
         this.accessToken = tokens.access_token;
-        if(tokens.refresh_token) this.refreshToken = tokens.refresh_token;
+        this.refreshToken = tokens.refresh_token;
         this.storeCredentials();
     }
     
@@ -249,13 +250,6 @@ class GoogleDriveProvider extends BaseProvider {
         return { folders: [], files: allFiles };
     }
     
-    async moveFileToStack(fileId, targetStack, sequence) {
-        return this.updateUserMetadata(fileId, {
-            stack: targetStack,
-            stackSequence: sequence
-        });
-    }
-
     async moveFileToFolder(fileId, targetFolderId) {
         const file = await this.makeApiCall(`/files/${fileId}?fields=parents`);
         const previousParents = file.parents.join(',');
@@ -295,3 +289,7 @@ class GoogleDriveProvider extends BaseProvider {
         this.clearStoredCredentials();
     }
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.GoogleDriveProvider = GoogleDriveProvider;

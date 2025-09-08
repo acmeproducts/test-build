@@ -1,28 +1,27 @@
-function DetailsView(pubSub, utils) {
+
+function DetailsView(pubSub, utils, appState) {
     const el = utils.qs('#details-modal');
     // ... other element queries
 
-    function show(file) {
-        // ... logic to populate all the tabs with file data
-        el.classList.remove('hidden');
+    function init() {
+        // Bind events, subscribe to open requests
     }
-
+    
+    function show(file) {
+        // Populate tabs, show modal
+    }
+    
     function hide() {
         el.classList.add('hidden');
     }
 
-    function init() {
-        // ... add all event listeners for tabs, inputs, close button, etc.
-        // On input blur or change, publish an event, e.g.:
-        // notesTextarea.addEventListener('blur', (e) => {
-        //     pubSub.publish('details:metadata-updated', { 
-        //         fileId: currentFileId, 
-        //         updates: { notes: e.target.value }
-        //     });
-        // });
+    // ... logic for populating tabs, handling edits, etc. ...
 
-        pubSub.subscribe('app:open-details-view', ({ file }) => show(file));
-    }
-
-    return { init };
+    return {
+        init
+    };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.DetailsView = DetailsView;

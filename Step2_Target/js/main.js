@@ -1,112 +1,106 @@
+
 (function() {
-    // Handle OAuth callback for Google Drive
-    if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const error = urlParams.get('error');
-        
-        if (window.opener) {
-            if (error) {
-                window.opener.postMessage({ type: 'GOOGLE_AUTH_ERROR', error: error }, window.location.origin);
-            } else if (code) {
-                window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', code: code }, window.location.origin);
+    // This is the App Orchestrator
+    document.addEventListener('DOMContentLoaded', () => {
+        // Handle OAuth callback for Google Drive first
+        if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            if (window.opener) {
+                if (error) {
+                    window.opener.postMessage({ type: 'GOOGLE_AUTH_ERROR', error: error }, window.location.origin);
+                } else if (code) {
+                    window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', code: code }, window.location.origin);
+                }
+                window.close();
+                return; // Stop app initialization on callback
             }
-            window.close();
-            return; // Stop app execution in the popup
         }
-    }
-
-    async function initApp() {
-        // --- 1. Core Services Instantiation ---
-        const pubSub = PubSub();
-        const utils = Utils(pubSub);
-        const appState = AppState(pubSub);
         
-        const services = {
-            visualCues: VisualCueManager(),
-            haptic: HapticFeedbackManager(),
-            fileCache: FileCache(),
-            metadata: MetadataExtractor(),
-            exportSystem: ExportSystem(appState, utils)
-            // OneDrive sync manager is instantiated later
-        };
+        // 1. Instantiate Core Modules
+        const pubSub = window.AppModules.PubSub();
+        const appState = window.AppModules.AppState(pubSub);
+        const utils = window.AppModules.Utils(pubSub);
 
-        const providers = {
-            googledrive: new GoogleDriveProvider(appState),
-            onedrive: new OneDriveProvider(appState)
-        };
+        // Make state globally accessible for providers (a temporary necessity until providers are fully refactored)
+        window.AppModules.appState = appState;
 
-        let syncManager = null;
+        // 2. Instantiate Services
+        const haptic = window.AppModules.HapticFeedbackManager(pubSub);
+        const visualCues = window.AppModules.VisualCueManager();
+        const fileCache = window.AppModules.FileCache();
+        // ... instantiate other services
 
-        // --- 2. Views Instantiation ---
-        const views = {
-            setup: SetupView(pubSub, utils, providers),
-            centerStage: CenterStageView(pubSub, utils),
-            grid: GridView(pubSub, utils),
-            details: DetailsView(pubSub, utils),
-            action: ActionView(pubSub, utils)
-        };
-        
-        Object.values(views).forEach(view => view.init());
-        Object.values(services).forEach(service => service.init && service.init());
+        // 3. Instantiate Views
+        const setupView = window.AppModules.SetupView(pubSub, utils);
+        const centerStageView = window.AppModules.CenterStageView(pubSub, utils, appState);
+        const gridView = window.AppModules.GridView(pubSub, utils, appState);
+        const detailsView = window.AppModules.DetailsView(pubSub, utils, appState);
+        const actionView = window.AppModules.ActionView(pubSub, utils);
 
-        // --- 3. App Orchestration (Wiring) ---
+        // 4. Initialize everything
+        async function initApp() {
+            await fileCache.init();
+            appState.init();
+            haptic.init();
+            visualCues.init();
+            setupView.init();
+            centerStageView.init();
+            gridView.init();
+            detailsView.init();
+            actionView.init();
+            
+            setupView.showScreen('provider');
+        }
 
-        // Handle provider selection
-        pubSub.subscribe('setup:provider-selected', async ({ providerType }) => {
-            const provider = providers[providerType];
+        // 5. Wire up the application using PubSub (Orchestration)
+        pubSub.subscribe('setup:provider-selected', async (payload) => {
+            const ProviderClass = payload.providerType === 'googledrive' 
+                ? window.AppModules.GoogleDriveProvider 
+                : window.AppModules.OneDriveProvider;
+            
+            const provider = new ProviderClass(appState);
+            appState.setProvider(provider);
+
             if (provider.isAuthenticated) {
-                appState.selectFolder(null, null, providerType, provider); // Set provider in state
-                pubSub.publish('app:show-screen', { screenName: `${providerType}Folders` });
+                // Already authenticated, go to folders
+                setupView.showScreen(payload.providerType === 'googledrive' ? 'gdriveFolders' : 'onedriveFolders');
+                const folders = await provider.getFolders();
+                pubSub.publish('app:render-folders', { folders, providerType: provider.name });
             } else {
-                pubSub.publish('app:show-screen', { screenName: `${providerType}Auth` });
+                setupView.showScreen(payload.providerType === 'googledrive' ? 'gdriveAuth' : 'onedriveAuth');
             }
         });
 
-        // Handle folder selection
-        pubSub.subscribe('setup:folder-selected', async ({ folderId, folderName, providerType }) => {
-            pubSub.publish('app:show-screen', { screenName: 'loading' });
-            const provider = providers[providerType];
-            appState.selectFolder(folderId, folderName, providerType, provider);
-
-            if (providerType === 'onedrive' && !syncManager) {
-                syncManager = MetadataSyncManager(provider, pubSub);
-                syncManager.init();
-            }
-
-            try {
-                const { files } = await provider.getFilesAndMetadata(folderId);
-                appState.initializeStacks(files);
-                pubSub.publish('app:show-screen', { screenName: 'app' });
-            } catch (e) {
-                utils.showToast(`Error loading images: ${e.message}`, 'error', true);
-                pubSub.publish('app:show-screen', { screenName: `${providerType}Folders` });
-            }
-        });
-
-        // Handle view opening requests from CenterStage
-        pubSub.subscribe('centerStage:grid-requested', () => {
-            pubSub.publish('app:open-grid-view', appState.getState());
-        });
-
-        pubSub.subscribe('centerStage:details-requested', () => {
+        pubSub.subscribe('setup:auth-requested', async (payload) => {
             const state = appState.getState();
-            const currentFile = state.stacks[state.currentStack][state.currentStackPosition];
-            if(currentFile) {
-                pubSub.publish('app:open-details-view', { file: currentFile });
+            try {
+                const success = await state.provider.authenticate(payload?.clientSecret);
+                if (success) {
+                    setupView.showScreen(state.providerType === 'googledrive' ? 'gdriveFolders' : 'onedriveFolders');
+                    const folders = await state.provider.getFolders();
+                    pubSub.publish('app:render-folders', { folders, providerType: state.provider.name });
+                }
+            } catch(e) {
+                utils.showToast(e.message, 'error', true);
             }
         });
 
-        // Handle returning to folder selection
-        pubSub.subscribe('centerStage:return-to-folders', () => {
-            if (syncManager) syncManager.triggerSync();
-            const { providerType } = appState.getState();
-            pubSub.publish('app:show-screen', { screenName: `${providerType}Folders` });
+        pubSub.subscribe('setup:folder-selected', async (payload) => {
+            const state = appState.getState();
+            appState.setCurrentFolder(payload.folderId, payload.folderName);
+            setupView.showScreen('loading');
+            
+            const { files } = await state.provider.getFilesAndMetadata(payload.folderId);
+            appState.setImageFiles(files); // This will trigger the first render
+            
+            setupView.showScreen('app');
         });
-        
-        // Final init
-        pubSub.publish('app:show-screen', { screenName: 'provider' });
-    }
 
-    document.addEventListener('DOMContentLoaded', initApp);
+        initApp().catch(err => {
+            console.error("Fatal error during app initialization:", err);
+            utils.showToast("App failed to start. Please refresh.", "error", true);
+        });
+    });
 })();

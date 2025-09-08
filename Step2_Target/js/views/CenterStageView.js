@@ -1,19 +1,23 @@
-function CenterStageView(pubSub, utils) {
+
+function CenterStageView(pubSub, utils, appState) {
     const el = utils.qs('#app-container');
-    const imageEl = utils.qs('#center-image');
+    const imageViewport = utils.qs('#image-viewport', el);
+    const centerImage = utils.qs('#center-image', el);
     // ... other element queries
 
-    function render(state) {
-        // ... logic to update image, pills, filename based on state
+    function init() {
+        // Bind events, subscribe to state updates
     }
 
-    function init() {
-        // ... add all event listeners for gestures, buttons, etc.
-        // On interaction, publish events, e.g.:
-        // imageEl.addEventListener('doubleclick', () => pubSub.publish('centerStage:focus-toggled'));
-        
-        pubSub.subscribe('state:updated', render);
-    }
+    // ... Gesture handling logic consolidated here ...
     
-    return { init };
+    // ... UI update logic consolidated here ...
+
+    return {
+        init
+    };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.CenterStageView = CenterStageView;

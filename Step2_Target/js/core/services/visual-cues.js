@@ -1,6 +1,7 @@
+
 function VisualCueManager() {
     let currentIntensity = localStorage.getItem('orbital8_visual_intensity') || 'medium';
-
+    
     function setIntensity(level) {
         currentIntensity = level;
         applyIntensity(level);
@@ -23,18 +24,26 @@ function VisualCueManager() {
         document.documentElement.style.setProperty('--glow', config.glow);
         document.documentElement.style.setProperty('--ripple', `${config.ripple}ms`);
         
-        document.body.classList.toggle('high-intensity-mode', config.extraEffects);
+        if (config.extraEffects) {
+            document.body.classList.add('high-intensity-mode');
+        } else {
+            document.body.classList.remove('high-intensity-mode');
+        }
     }
 
     function init() {
-        applyIntensity(currentIntensity);
-        document.querySelectorAll('.intensity-btn').forEach(btn => {
+         applyIntensity(currentIntensity);
+         document.querySelectorAll('.intensity-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.level === currentIntensity);
+            btn.addEventListener('click', () => setIntensity(btn.dataset.level));
         });
     }
 
     return {
-        init,
-        setIntensity
+        init
     };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.VisualCueManager = VisualCueManager;

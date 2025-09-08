@@ -1,3 +1,4 @@
+
 function MetadataSyncManager(provider, pubSub) {
     let worker = null;
     let isSyncing = false;
@@ -68,12 +69,9 @@ function MetadataSyncManager(provider, pubSub) {
 
             async function makeApiCall(endpoint, options = {}) {
                 if (!accessToken) throw new Error('No access token in worker');
-                
                 const url = \`\${apiBase}\${endpoint}\`;
                 const headers = { 'Authorization': \`Bearer \` + accessToken, ...options.headers };
-                
                 const response = await fetch(url, { ...options, headers });
-                
                 if (response.status === 401) throw new Error('TOKEN_EXPIRED');
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -108,7 +106,7 @@ function MetadataSyncManager(provider, pubSub) {
                         const newAccessToken = await provider.getAccessToken();
                         worker.postMessage({ command: 'NEW_TOKEN', payload: { accessToken: newAccessToken } });
                     } catch (error) {
-                        pubSub.publish('ui:show-toast', { message: 'Could not refresh session. Sync paused.', type: 'error', important: true });
+                        pubSub.publish('sync:error', { message: 'Could not refresh session. Sync paused.' });
                         isSyncing = false;
                     } finally {
                         tokenRequestPending = false;
@@ -120,13 +118,13 @@ function MetadataSyncManager(provider, pubSub) {
 
     function addEventListeners() {
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') triggerSync();
+            if (document.visibilityState === 'hidden') {
+                triggerSync();
+            }
         });
         window.addEventListener('beforeunload', () => {
             if (provider.dirtyFiles.size > 0) {
                 triggerSync();
-                const start = Date.now();
-                while(Date.now() - start < 100) {}
             }
         });
     }
@@ -150,7 +148,7 @@ function MetadataSyncManager(provider, pubSub) {
 
             provider.dirtyFiles.clear();
         } catch (error) {
-            pubSub.publish('ui:show-toast', { message: 'Could not start sync. Are you online?', type: 'error', important: true });
+            pubSub.publish('sync:error', { message: 'Could not start sync. Are you online?' });
         }
     }
     
@@ -161,5 +159,13 @@ function MetadataSyncManager(provider, pubSub) {
         }
     }
 
-    return { init, triggerSync, stop };
+    return {
+        init,
+        triggerSync,
+        stop
+    };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.MetadataSyncManager = MetadataSyncManager;

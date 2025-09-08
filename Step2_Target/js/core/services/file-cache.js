@@ -1,6 +1,7 @@
+
 function FileCache() {
     let db = null;
-
+    
     async function init() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open('Orbital8Cache', 3);
@@ -10,13 +11,13 @@ function FileCache() {
                 resolve();
             };
             request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('files')) {
-                    const fileStore = db.createObjectStore('files', { keyPath: 'folderId' });
+                const dbInstance = event.target.result;
+                if (!dbInstance.objectStoreNames.contains('files')) {
+                    const fileStore = dbInstance.createObjectStore('files', { keyPath: 'folderId' });
                     fileStore.createIndex('folderId', 'folderId', { unique: true });
                 }
-                if (!db.objectStoreNames.contains('metadata')) {
-                    db.createObjectStore('metadata', { keyPath: 'id' });
+                if (!dbInstance.objectStoreNames.contains('metadata')) {
+                    dbInstance.createObjectStore('metadata', { keyPath: 'id' });
                 }
             };
         });
@@ -27,6 +28,45 @@ function FileCache() {
         return (Date.now() - cachedTime) < CACHE_DURATION;
     }
 
+    async function getCachedFiles(folderId) {
+        if (!db) return null;
+        try {
+            const transaction = db.transaction(['files'], 'readonly');
+            const store = transaction.objectStore('files');
+            const result = await new Promise((resolve, reject) => {
+                const request = store.get(folderId);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            
+            if (result && isCacheValid(result.cached)) {
+                return result.files;
+            }
+        } catch (error) {
+            console.warn('Failed to get cached files:', error);
+        }
+        return null;
+    }
+    
+    async function setCachedFiles(folderId, files) {
+        if (!db) return;
+        try {
+            const transaction = db.transaction(['files'], 'readwrite');
+            const store = transaction.objectStore('files');
+            await new Promise((resolve, reject) => {
+                const request = store.put({
+                    folderId,
+                    files,
+                    cached: Date.now()
+                });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        } catch (error) {
+            console.warn('Failed to cache files:', error);
+        }
+    }
+    
     async function getMetadata(fileId) {
         if (!db) return null;
         try {
@@ -38,7 +78,10 @@ function FileCache() {
                 request.onerror = () => reject(request.error);
             });
             
-            if (result) return result.metadata;
+            if (result) {
+                return result.metadata;
+            }
+
         } catch (error) {
             console.warn('Failed to get cached metadata:', error);
         }
@@ -51,7 +94,11 @@ function FileCache() {
             const transaction = db.transaction(['metadata'], 'readwrite');
             const store = transaction.objectStore('metadata');
             await new Promise((resolve, reject) => {
-                const request = store.put({ id: fileId, metadata, cached: Date.now() });
+                const request = store.put({ 
+                    id: fileId, 
+                    metadata,
+                    cached: Date.now()
+                });
                 request.onsuccess = () => resolve();
                 request.onerror = () => reject(request.error);
             });
@@ -77,8 +124,14 @@ function FileCache() {
 
     return {
         init,
+        getCachedFiles,
+        setCachedFiles,
         getMetadata,
         setMetadata,
         clearCacheForFolder
     };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.FileCache = FileCache;

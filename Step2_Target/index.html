@@ -1,3 +1,4 @@
+<!-- orbital8-goji - Step 2 Debug Build -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,105 +6,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Orbital8 Goji - Debug Build</title>
-    
+    <title>Orbital8 Goji - Refactor Test</title>
+
+    <!-- The original, unmodified CSS files are LINKED for visual fidelity -->
     <link rel="stylesheet" href="./css/main.css">
     <link rel="stylesheet" href="./css/components.css">
 
+    <!-- START: On-Screen Debug Console -->
     <style>
         #debug-console {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 25vh;
+            height: 25%;
             background-color: rgba(0, 0, 0, 0.85);
             color: #fff;
             font-family: monospace;
             font-size: 12px;
             padding: 10px;
             overflow-y: scroll;
-            border-top: 2px solid var(--accent);
             z-index: 9999;
+            border-top: 2px solid #f59e0b;
             display: flex;
-            flex-direction: column-reverse;
+            flex-direction: column;
         }
-        .debug-log {
-            padding: 2px 5px;
+        #debug-console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #444;
+            margin-bottom: 5px;
+            flex-shrink: 0;
+        }
+        #debug-console-header span {
+            font-weight: bold;
+            color: #f59e0b;
+        }
+        #debug-console-copy-btn {
+            background: #555;
+            color: white;
+            border: 1px solid #777;
+            border-radius: 4px;
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+        #debug-console-copy-btn:hover {
+            background: #777;
+        }
+        #debug-console-log {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .console-entry {
+            padding: 2px 0;
             border-bottom: 1px solid #333;
-            white-space: pre-wrap;
-            word-break: break-all;
         }
-        .debug-log.error { color: #ff8a80; font-weight: bold; }
-        .debug-log.warn { color: #ffd180; }
-        .debug-log.info { color: #82b1ff; }
+        .console-entry.error { color: #ff8a80; }
+        .console-entry.warn { color: #ffd180; }
+        .console-entry.log { color: #b9f6ca; }
     </style>
     <script>
-        // On-screen console logic. This MUST run before any other script.
+        // This script MUST run before any other application script to catch all errors.
         (function() {
-            function createLogEntry(message, type) {
-                const consoleEl = document.getElementById('debug-console');
-                if (!consoleEl) return;
-                
+            const originalConsole = {
+                log: console.log.bind(console),
+                warn: console.warn.bind(console),
+                error: console.error.bind(console),
+            };
+
+            function createLogEntry(type, message) {
+                const logContainer = document.getElementById('debug-console-log');
+                if (!logContainer) return;
+
                 const entry = document.createElement('div');
-                entry.className = `debug-log ${type}`;
-                
-                const now = new Date();
-                const timestamp = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-                
-                entry.textContent = `[${timestamp}] ${message}`;
-                consoleEl.prepend(entry); // Prepend to show newest at the top
+                entry.className = `console-entry ${type}`;
+                const timestamp = new Date().toLocaleTimeString();
+                entry.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
             }
-
-            // Override console methods
-            const originalLog = console.log;
-            const originalWarn = console.warn;
-            const originalError = console.error;
-
-            console.log = function() {
-                const message = Array.from(arguments).join(' ');
-                createLogEntry(message, 'log');
-                originalLog.apply(console, arguments);
+            
+            console.log = function(...args) {
+                const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+                originalConsole.log.apply(console, args);
+                createLogEntry('log', message);
+            };
+            console.warn = function(...args) {
+                const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+                originalConsole.warn.apply(console, args);
+                createLogEntry('warn', message);
+            };
+            console.error = function(...args) {
+                const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+                originalConsole.error.apply(console, args);
+                createLogEntry('error', message);
             };
 
-            console.warn = function() {
-                const message = Array.from(arguments).join(' ');
-                createLogEntry(message, 'warn');
-                originalWarn.apply(console, arguments);
-            };
-
-            console.error = function() {
-                const message = Array.from(arguments).join(' ');
-                createLogEntry(message, 'error');
-                originalError.apply(console, arguments);
-            };
-
-            // Catch unhandled exceptions
             window.onerror = function(message, source, lineno, colno, error) {
-                const fullMessage = `[ERROR] Uncaught ${error ? error.name : 'Error'}: ${message}\nSource: ${source}\nLine: ${lineno}, Col: ${colno}`;
-                createLogEntry(fullMessage, 'error');
-                return false; // Allow the default browser error handling to continue
+                const formattedMessage = `${message}\nSource: ${source}\nLine: ${lineno}, Col: ${colno}`;
+                createLogEntry('error', formattedMessage);
+                return true; // Prevents the default browser error handling
             };
 
-            // Catch unhandled promise rejections
             window.addEventListener('unhandledrejection', function(event) {
-                const message = `[ERROR] Unhandled Promise Rejection: ${event.reason}`;
-                createLogEntry(message, 'error');
+                createLogEntry('error', `Unhandled Promise Rejection: ${event.reason}`);
             });
             
             document.addEventListener('DOMContentLoaded', () => {
-                if (!document.getElementById('debug-console')) {
-                    const consoleEl = document.createElement('div');
-                    consoleEl.id = 'debug-console';
-                    document.body.appendChild(consoleEl);
+                const logContainer = document.getElementById('debug-console-log');
+                const copyBtn = document.getElementById('debug-console-copy-btn');
+                if (copyBtn && logContainer) {
+                    copyBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(logContainer.innerText).then(() => {
+                           copyBtn.textContent = 'Copied!';
+                           setTimeout(() => { copyBtn.textContent = 'Copy Log'; }, 2000);
+                        }).catch(err => {
+                           console.error('Failed to copy log:', err);
+                        });
+                    });
                 }
-                console.log("Debug console initialized.");
+                createLogEntry('log', 'Debug console initialized');
             });
         })();
     </script>
+    <!-- END: On-Screen Debug Console -->
 </head>
 <body>
-    
+    <!-- START: Inlined HTML Partials -->
     <!-- Provider Selection Screen -->
     <div class="screen" id="provider-screen">
         <div class="card">
@@ -146,7 +177,6 @@
         </div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-
     <!-- Google Drive Auth Screen -->
     <div class="screen hidden" id="gdrive-auth-screen">
         <div class="card">
@@ -159,7 +189,6 @@
         </div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-
     <!-- OneDrive Auth Screen -->
     <div class="screen hidden" id="onedrive-auth-screen">
         <div class="card">
@@ -171,7 +200,6 @@
         </div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-
     <!-- Google Drive Folder Screen -->
     <div class="screen hidden" id="gdrive-folder-screen">
         <div class="card" style="max-height: 80vh; display: flex; flex-direction: column;">
@@ -186,7 +214,6 @@
         </div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-
     <!-- OneDrive Folder Screen -->
     <div class="screen hidden" id="onedrive-folder-screen">
         <div class="card" style="max-height: 80vh; display: flex; flex-direction: column;">
@@ -201,7 +228,6 @@
         </div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-
     <!-- Loading Screen -->
     <div class="screen hidden" id="loading-screen" style="z-index: 1500;">
         <div class="card">
@@ -215,7 +241,6 @@
         </div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-
     <!-- Main App Container -->
     <div class="app-container hidden" id="app-container">
         <div class="nav-button back" id="back-button">
@@ -258,7 +283,6 @@
         <div id="toast" class="toast"></div>
         <div class="app-footer">orbital8-goji-2025-08-26 05:07 AM</div>
     </div>
-    
     <!-- Enhanced Grid Modal -->
     <div id="grid-modal" class="modal hidden">
         <div class="modal-content">
@@ -312,7 +336,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Unified Action Modal -->
     <div id="action-modal" class="modal hidden">
         <div class="modal-content action-modal">
@@ -324,7 +347,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Details Modal -->
     <div id="details-modal" class="modal hidden">
         <div class="modal-content details-modal-content">
@@ -379,22 +401,42 @@
                     <div style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px;">Quality Rating:</div>
                         <div class="star-rating" id="quality-rating">
-                            <svg class="star" data-rating="1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            <svg class="star" data-rating="1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
                         </div>
                     </div>
                     
                     <div style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px;">Content Rating:</div>
                         <div class="star-rating" id="content-rating">
-                            <svg class="star" data-rating="1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <svg class="star" data-rating="5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            <svg class="star" data-rating="1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <svg class="star" data-rating="5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
                         </div>
                     </div>
                 </div>
@@ -405,29 +447,36 @@
             </div>
         </div>
     </div>
-
-    <!-- Debug Console Element -->
-    <div id="debug-console"></div>
-
+    <div id="debug-console">
+        <div id="debug-console-header">
+            <span>On-Screen Console</span>
+            <button id="debug-console-copy-btn">Copy Log</button>
+        </div>
+        <div id="debug-console-log"></div>
+    </div>
+    <!-- END: Inlined HTML Partials -->
+    
+    <!-- START: Referenced Application Scripts -->
+    <!-- The order of these scripts is critical for the application to initialize correctly. -->
     <script src="./js/lib/msal-browser.min.js"></script>
     <script src="./js/core/PubSub.js"></script>
     <script src="./js/core/State.js"></script>
     <script src="./js/core/Utils.js"></script>
+    <script src="./js/core/services/export.js"></script>
     <script src="./js/core/services/file-cache.js"></script>
     <script src="./js/core/services/haptic.js"></script>
     <script src="./js/core/services/metadata.js"></script>
+    <script src="./js/core/services/sync.js"></script>
     <script src="./js/core/services/visual-cues.js"></script>
-    <script src="./js/core/services/export.js"></script>
     <script src="./js/core/providers/base-provider.js"></script>
     <script src="./js/core/providers/googledrive-provider.js"></script>
     <script src="./js/core/providers/onedrive-provider.js"></script>
-    <script src="./js/core/services/sync.js"></script>
     <script src="./js/views/ActionView.js"></script>
     <script src="./js/views/DetailsView.js"></script>
     <script src="./js/views/GridView.js"></script>
     <script src="./js/views/CenterStageView.js"></script>
     <script src="./js/views/SetupView.js"></script>
-    <script src="./js/main.js"></script>
-
+    <script src="./js/main.js"></script> <!-- The Orchestrator runs last -->
+    <!-- END: Referenced Application Scripts -->
 </body>
 </html>

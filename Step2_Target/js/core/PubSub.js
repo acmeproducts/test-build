@@ -1,31 +1,38 @@
-function PubSub() {
-    const subscribers = {};
 
-    function publish(eventName, data) {
-        if (!Array.isArray(subscribers[eventName])) {
-            return;
-        }
-        subscribers[eventName].forEach((callback) => {
-            callback(data);
-        });
+function PubSub() {
+    const events = {};
+
+    function subscribe(eventName, fn) {
+        events[eventName] = events[eventName] || [];
+        events[eventName].push(fn);
     }
 
-    function subscribe(eventName, callback) {
-        if (!Array.isArray(subscribers[eventName])) {
-            subscribers[eventName] = [];
+    function unsubscribe(eventName, fn) {
+        if (events[eventName]) {
+            for (let i = 0; i < events[eventName].length; i++) {
+                if (events[eventName][i] === fn) {
+                    events[eventName].splice(i, 1);
+                    break;
+                }
+            }
         }
-        subscribers[eventName].push(callback);
-        const index = subscribers[eventName].length - 1;
+    }
 
-        return {
-            unsubscribe() {
-                subscribers[eventName].splice(index, 1);
-            },
-        };
+    function publish(eventName, data) {
+        if (events[eventName]) {
+            events[eventName].forEach(fn => {
+                fn(data);
+            });
+        }
     }
 
     return {
-        publish,
         subscribe,
+        unsubscribe,
+        publish,
     };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.PubSub = PubSub;

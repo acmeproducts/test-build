@@ -1,37 +1,34 @@
-function GridView(pubSub, utils) {
+
+function GridView(pubSub, utils, appState) {
     const el = utils.qs('#grid-modal');
-    const containerEl = utils.qs('#grid-container');
     // ... other element queries
-
+    
     let currentStack = null;
-    let selectedFileIds = [];
+    let selected = [];
 
-    function open(state) {
-        currentStack = state.currentStack;
-        // ... render logic based on state.stacks[currentStack]
+    function init() {
+        // Bind events, subscribe to open requests
+    }
+
+    function open(stackName) {
+        currentStack = stackName;
+        // ... render logic ...
         el.classList.remove('hidden');
     }
 
     function close() {
-        pubSub.publish('grid:closed-with-selection', { 
-            stackName: currentStack,
-            selectedFileIds: selectedFileIds
-        });
+        pubSub.publish('grid:closed-with-selection', { stackName: currentStack, selectedIds: selected });
         el.classList.add('hidden');
-        selectedFileIds = [];
-        currentStack = null;
+        selected = [];
     }
+    
+    // ... logic for rendering, selection, search, etc. ...
 
-    function init() {
-        // ... add event listeners for all buttons
-        // e.g., deleteBtn.addEventListener('click', () => {
-        //     pubSub.publish('grid:bulk-delete-action', { fileIds: selectedFileIds });
-        // });
-
-        utils.qs('#close-grid', el).addEventListener('click', close);
-        
-        pubSub.subscribe('app:open-grid-view', open);
-    }
-
-    return { init };
+    return {
+        init
+    };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.GridView = GridView;

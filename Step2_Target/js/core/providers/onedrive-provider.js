@@ -1,3 +1,4 @@
+
 class OneDriveProvider extends BaseProvider {
     constructor(appState) {
         super(appState);
@@ -37,7 +38,7 @@ class OneDriveProvider extends BaseProvider {
                 this.activeAccount = accounts[0];
             } else {
                 const loginResponse = await this.msalInstance.loginPopup({
-                    scopes: ['Files.ReadWrite.AppFolder', 'User.Read', 'Files.ReadWrite']
+                    scopes: ['Files.ReadWrite', 'User.Read']
                 });
                 this.activeAccount = loginResponse.account;
                 this.msalInstance.setActiveAccount(this.activeAccount);
@@ -56,18 +57,16 @@ class OneDriveProvider extends BaseProvider {
             throw new Error('No active account');
         }
         
-        const scopes = ['Files.ReadWrite.AppFolder', 'Files.ReadWrite'];
-
         try {
             const response = await this.msalInstance.acquireTokenSilent({
-                scopes,
+                scopes: ['Files.ReadWrite'],
                 account: this.activeAccount
             });
             return response.accessToken;
         } catch (silentError) {
             if (silentError instanceof msal.InteractionRequiredAuthError) {
                 const response = await this.msalInstance.acquireTokenPopup({
-                    scopes,
+                    scopes: ['Files.ReadWrite'],
                     account: this.activeAccount
                 });
                 return response.accessToken;
@@ -127,10 +126,10 @@ class OneDriveProvider extends BaseProvider {
     async getFilesFromFolder(folderId) {
         const allFiles = [];
         let endpoint = folderId === 'root' 
-            ? '/me/drive/root/children?$expand=thumbnails' 
-            : `/me/drive/items/${folderId}/children?$expand=thumbnails`;
+            ? '/me/drive/root/children' 
+            : `/me/drive/items/${folderId}/children`;
         
-        let nextLink = `${this.apiBase}${endpoint}`;
+        let nextLink = `${this.apiBase}${endpoint}?$expand=thumbnails`;
 
         while(nextLink) {
             const response = await this.makeApiCall(nextLink.replace(this.apiBase, ''));
@@ -195,7 +194,10 @@ class OneDriveProvider extends BaseProvider {
                 (item.name.toLowerCase() === 'downloads' || item.name.toLowerCase() === 'download')
             );
             
-            if (downloadsFolder) return downloadsFolder;
+            if (downloadsFolder) {
+                return downloadsFolder;
+            }
+            
             return { id: 'root', name: 'Root', folder: true };
         } catch (error) {
             console.warn('Could not find Downloads folder, using root:', error);
@@ -206,9 +208,11 @@ class OneDriveProvider extends BaseProvider {
     async getFolders() {
         try {
             const downloadsFolder = await this.getDownloadsFolder();
+            
             this.currentParentId = downloadsFolder.id;
             this.currentParentPath = downloadsFolder.name;
             this.breadcrumb = [{ id: downloadsFolder.id, name: downloadsFolder.name }];
+            
             return await this.loadFoldersInParent(downloadsFolder.id);
         } catch (error) {
             console.warn('Failed to load initial folders:', error);
@@ -231,8 +235,11 @@ class OneDriveProvider extends BaseProvider {
                 const folderItems = data.value
                     .filter(item => item.folder)
                     .map(folder => ({
-                        id: folder.id, name: folder.name, type: 'folder',
-                        createdTime: folder.createdDateTime, modifiedTime: folder.lastModifiedDateTime,
+                        id: folder.id,
+                        name: folder.name,
+                        type: 'folder',
+                        createdTime: folder.createdDateTime,
+                        modifiedTime: folder.lastModifiedDateTime,
                         itemCount: folder.folder.childCount || 0,
                         hasChildren: (folder.folder.childCount || 0) > 0
                     }));
@@ -255,6 +262,7 @@ class OneDriveProvider extends BaseProvider {
             this.breadcrumb.push({ id: folder.id, name: folder.name });
             this.currentParentId = folder.id;
             this.currentParentPath = this.breadcrumb.map(b => b.name).join(' / ');
+            
             return await this.loadFoldersInParent(folder.id);
         } catch (error) {
             console.warn('Failed to drill into folder:', error);
@@ -263,7 +271,9 @@ class OneDriveProvider extends BaseProvider {
     }
     
     async navigateToParent() {
-        if (this.breadcrumb.length <= 1) return await this.getFolders();
+        if (this.breadcrumb.length <= 1) {
+            return await this.getFolders();
+        }
         
         this.breadcrumb.pop();
         const parentFolder = this.breadcrumb[this.breadcrumb.length - 1];
@@ -277,21 +287,24 @@ class OneDriveProvider extends BaseProvider {
     getCurrentPath() { return this.currentParentPath; }
     canGoUp() { return this.breadcrumb.length > 1; }
     
-    async moveFileToStack(fileId, targetStack, sequence) {
-        this.updateUserMetadata(fileId, { stack: targetStack, stackSequence: sequence });
-    }
-
     async moveFileToFolder(fileId, targetFolderId) {
         await this.makeApiCall(`/me/drive/items/${fileId}`, {
             method: 'PATCH',
-            body: JSON.stringify({ parentReference: { id: targetFolderId } })
+            body: JSON.stringify({
+                parentReference: { id: targetFolderId }
+            })
         });
-        this.updateUserMetadata(fileId, { stack: 'in', stackSequence: Date.now() });
+        this.updateUserMetadata(fileId, { 
+            stack: 'in',
+            stackSequence: Date.now()
+        });
         return true;
     }
     
     async deleteFile(fileId) {
-        await this.makeApiCall(`/me/drive/items/${fileId}`, { method: 'DELETE' });
+        await this.makeApiCall(`/me/drive/items/${fileId}`, {
+            method: 'DELETE'
+        });
         this.metadataCache.delete(fileId);
         this.dirtyFiles.add(fileId);
         return true;
@@ -303,8 +316,14 @@ class OneDriveProvider extends BaseProvider {
         if (this.msalInstance) {
             const accounts = this.msalInstance.getAllAccounts();
             if (accounts.length > 0) {
-                await this.msalInstance.logoutPopup({ account: accounts[0] });
+                await this.msalInstance.logoutPopup({
+                    account: accounts[0]
+                });
             }
         }
     }
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.OneDriveProvider = OneDriveProvider;

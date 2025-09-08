@@ -1,3 +1,4 @@
+
 function MetadataExtractor() {
     let abortController = null;
     
@@ -38,33 +39,40 @@ function MetadataExtractor() {
                         const byte = view.getUint8(pos + i);
                         
                         if (!nullFound) {
-                            if (byte === 0) nullFound = true;
-                            else keyword += String.fromCharCode(byte);
+                            if (byte === 0) {
+                                nullFound = true;
+                            } else {
+                                keyword += String.fromCharCode(byte);
+                            }
                         } else {
                             value += String.fromCharCode(byte);
                         }
                     }
+                    
                     metadata[keyword] = value;
                 } else if (chunkType === 'IHDR') {
-                    metadata._dimensions = { 
-                        width: view.getUint32(pos, false),
-                        height: view.getUint32(pos + 4, false)
-                    };
+                    const width = view.getUint32(pos, false);
+                    const height = view.getUint32(pos + 4, false);
+                    metadata._dimensions = { width, height };
                 } else if (chunkType === 'IEND') {
                     break;
                 }
                 
                 pos += chunkLength + 4;
-                if (chunkLength > buffer.byteLength || pos > buffer.byteLength) break;
+                
+                if (chunkLength > buffer.byteLength || pos > buffer.byteLength) {
+                    break;
+                }
             }
-        } catch (error) { /* Return what we have so far */ }
+        } catch (error) {
+            // Ignore errors and return what we have
+        }
         
         return metadata;
     }
     
     async function fetchMetadata(file, provider, isForExport = false) {
         if (file.mimeType !== 'image/png') {
-            if (!isForExport) file.metadataStatus = 'loaded';
             return { error: 'Not a PNG file' };
         }
         
@@ -77,7 +85,7 @@ function MetadataExtractor() {
                     headers: { 'Range': 'bytes=0-65535' },
                     signal: abortController.signal
                 }, false);
-            } else { // OneDrive
+            } else { // onedrive
                 const accessToken = await provider.getAccessToken();
                 response = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${file.id}/content`, {
                     headers: { 
@@ -88,12 +96,16 @@ function MetadataExtractor() {
                 });
             }
             
-            if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} ${response.statusText}`);
+            }
             
             const buffer = await response.arrayBuffer();
             return await extract(buffer);
         } catch (error) {
-            if (error.name === 'AbortError') return { error: 'Operation cancelled' };
+            if (error.name === 'AbortError') {
+                return { error: 'Operation cancelled' };
+            }
             return { error: error.message };
         }
     }
@@ -103,3 +115,7 @@ function MetadataExtractor() {
         fetchMetadata
     };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.MetadataExtractor = MetadataExtractor;

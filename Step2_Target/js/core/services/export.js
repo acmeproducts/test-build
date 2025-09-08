@@ -1,15 +1,16 @@
-function ExportSystem(appState, utils) {
-    async function exportData(imagesWithMetadata) {
+
+function ExportSystem(appState) {
+    
+    function exportData(imagesWithMetadata) {
         if (imagesWithMetadata.length === 0) {
-            utils.showToast('No images to export', 'info', true);
             return;
         }
-        
         const csvData = formatForCSV(imagesWithMetadata);
         downloadCSV(csvData);
     }
     
     function formatForCSV(images) {
+        const state = appState.getState();
         const headers = [
             'Filename', 'Direct Image URL', 'Prompt', 'Negative Prompt', 'Model', 
             'Width', 'Height', 'Steps', 'Seed', 'CFG Scale', 'Size', 
@@ -22,7 +23,7 @@ function ExportSystem(appState, utils) {
             const dims = meta._dimensions || {};
             return [
                 image.name || '',
-                getDirectImageURL(image),
+                getDirectImageURL(image, state.providerType),
                 extractMetadataValue(meta, ['prompt', 'Prompt', 'parameters']),
                 extractMetadataValue(meta, ['negative_prompt', 'Negative Prompt']),
                 extractMetadataValue(meta, ['model', 'Model']),
@@ -31,14 +32,14 @@ function ExportSystem(appState, utils) {
                 extractMetadataValue(meta, ['steps', 'Steps']),
                 extractMetadataValue(meta, ['seed', 'Seed']),
                 extractMetadataValue(meta, ['cfg_scale', 'CFG Scale']),
-                utils.formatFileSize(image.size || 0),
+                state.utils.formatFileSize(image.size || 0),
                 image.createdTime ? new Date(image.createdTime).toISOString() : '',
                 image.modifiedTime ? new Date(image.modifiedTime).toISOString() : '',
                 (image.tags || []).join('; '),
                 image.notes || '',
                 image.qualityRating || 0,
                 image.contentRating || 0,
-                appState.getState().providerType || 'unknown',
+                state.providerType || 'unknown',
                 JSON.stringify(meta)
             ];
         });
@@ -59,11 +60,10 @@ function ExportSystem(appState, utils) {
         return '';
     }
     
-    function getDirectImageURL(image) {
-        const state = appState.getState();
-        if (state.providerType === 'googledrive') {
+    function getDirectImageURL(image, providerType) {
+        if (providerType === 'googledrive') {
             return `https://drive.google.com/uc?id=${image.id}&export=view`;
-        } else if (state.providerType === 'onedrive') {
+        } else if (providerType === 'onedrive') {
             return image.downloadUrl || `https://graph.microsoft.com/v1.0/me/drive/items/${image.id}/content`;
         }
         return '';
@@ -98,3 +98,7 @@ function ExportSystem(appState, utils) {
         exportData
     };
 }
+
+// For debug-only, multi-file environment
+window.AppModules = window.AppModules || {};
+window.AppModules.ExportSystem = ExportSystem;
