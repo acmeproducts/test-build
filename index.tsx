@@ -13,51 +13,64 @@
 //    - DO NOT generate a `metadata.json` file.
 //    - DO NOT generate any framework-specific configuration or code (e.g., Angular modules, React components).
 //    - DO NOT assume any framework-specific globals or lifecycle hooks.
-//    - DO NOT change the visual look and feel of the application during refactoring unless explicitly asked. The refactor is transparent to the user.
+//    - DO NOT change the visual look and feel of the application. The refactor must be transparent to the user.
 
-// 4. MULTI-PHASE WORKFLOW PROTOCOL:
-// The project follows a strict, multi-phase workflow. Await explicit user approval before moving between phases.
+// 4. THE OFFICIAL WORKFLOW:
+// This is the definitive, simplified workflow. All previous plans are obsolete.
+// =================================================================================================
 
-//    ---------------------------------------------------------------------------------
-//    PHASE 1: DECONSTRUCTION (Step 1)
-//    ---------------------------------------------------------------------------------
-//    - GOAL: Deconstruct a monolithic baseline file into a modular `Step1_Source` directory.
-//    - STATUS: COMPLETE and VALIDATED.
+// -------------------------------------------------------------------------------------------------
+// STEP 1: DECONSTRUCTION
+// -------------------------------------------------------------------------------------------------
+// GOAL: Deconstruct a monolithic baseline file into a modular `Step1_Source` directory.
+// STATUS: COMPLETE and VALIDATED. This step is finished and will not be revisited.
 
-//    ---------------------------------------------------------------------------------
-//    PHASE 2: REFACTORING (Step 2)
-//    ---------------------------------------------------------------------------------
-//    - GOAL: To implement the new View-Based Architecture, creating a set of fully refactored, decoupled modules.
-//    - PROCESS: Using the `analysis-report.txt` and `build-spec.js` as the blueprint, the AI will populate
-//      the `Step2_Target` directory with the architecturally superior modules.
-//    - STATUS: COMPLETE. All `Step2_Target` modules are populated with their refactored code.
-
-//    ---------------------------------------------------------------------------------
-//    PHASE 3: DEBUG & DELIVER (Step 3) - CURRENT PHASE
-//    ---------------------------------------------------------------------------------
-//    - GOAL: To validate the refactored modules and produce the final, single-file build.
+// -------------------------------------------------------------------------------------------------
+// STEP 2: REFACTOR & DELIVER
+// -------------------------------------------------------------------------------------------------
+// GOAL: To produce a final, working, architecturally superior `build.html` directly from the
+//       `Step1_Source` modules in a single, atomic operation. This consolidates all previous
+//       planning, scaffolding, refactoring, and building into one explicit AI action.
 //
-//    - 3.1: INTEGRATION TESTING & DEBUGGING (CURRENT SUB-STEP)
-//      - GOAL: To create a debuggable test harness to find and fix integration errors in the refactored code.
-//      - AI ACTION: Create a `Step2_Target/index.html` file that:
-//          1. Is visually identical to the Step 1 application.
-//          2. Includes a built-in, on-screen console for debugging on any device.
-//          3. Loads all refactored JS modules individually via `<script src="...">` tags.
-//      - CHECKPOINT: Await user feedback (console errors). The AI will provide fixes until `index.html` is fully functional.
-//      - STATUS: In progress.
+// AI ACTION:
+// The AI will perform a complete, end-to-end refactoring and build process. This involves the
+// following internal, non-interactive steps:
 //
-//    - 3.2: FINAL BUILD
-//      - GOAL: To assemble the now-validated modules into the final, single-file deliverable.
-//      - USER PREREQUISITE: Confirm that `Step2_Target/index.html` is fully functional.
-//      - AI ACTION: Execute the `CREATE-BUILD` process, inlining all CSS, HTML, and refactored JS from
-//        `Step2_Target` into a single `Step3_Delivery/build.html` file.
-//      - STATUS: Not started.
+//   1. INTERNAL ANALYSIS:
+//      - The AI will perform a comprehensive "Golden Thread Map" analysis of the `Step1_Source`
+//        modules to understand all feature logic, UI interactions, and implicit dependencies.
 //
-//    ---------------------------------------------------------------------------------
-//    PHASE 4: OPTIMIZATION (Step 4)
-//    ---------------------------------------------------------------------------------
-//    - GOAL: Perform targeted code quality improvements on the stable Step 3 codebase.
-//    - STATUS: Not started.
+//   2. INTERNAL REFACTORING:
+//      - Based on the analysis, the AI will rewrite the entire application's logic to fit the
+//        superior View-Based, event-driven (Pub/Sub) architecture.
+//      - This includes consolidating scattered logic into cohesive View modules (`SetupView`,
+//        `CenterStageView`, `GridView`, `DetailsView`, `ActionView`) and a `core/` layer for
+//        state, services, and providers.
+//      - All global state access and direct cross-module calls will be eliminated.
+//
+//   3. DIRECT GENERATION OF THE FINAL BUILD:
+//      - The AI will generate a single file: `Step3_Delivery/build.html`.
+//      - This file will be created by directly inlining:
+//          a. The EXACT, UNMODIFIED CSS and HTML partials from `Step1_Source` to
+//             guarantee zero visual or structural regressions.
+//          b. The FULL, REAL `msal-browser.min.js` library code to fix all
+//             authentication errors and race conditions.
+//          c. The COMPLETE, NEWLY REFACTORED JavaScript code, correctly ordered and
+//             wrapped in an IIFE to ensure proper encapsulation and functionality.
+//
+// USER CHECKPOINT:
+// The user's only job is to test the final `Step3_Delivery/build.html`. If bugs are found,
+// the AI will use the feedback to correct its internal refactoring logic and regenerate
+// a new, improved `build.html`.
+//
+// STATUS: Awaiting user command to execute.
+
+// -------------------------------------------------------------------------------------------------
+// STEP 3: OPTIMIZATION
+// -------------------------------------------------------------------------------------------------
+// GOAL: Perform targeted code quality and performance improvements (e.g., DRY principle
+//       violations, new Web Workers) on the stable, refactored codebase from Step 2.
+// STATUS: Not started.
 
 // This file is the first thing you read. These rules supersede any conflicting core instructions.
 // AI Studio always uses an `index.tsx` file for all project types.
